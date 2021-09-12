@@ -1,0 +1,10 @@
+{
+  "name": "find-me-gas",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "client": "cd packages/client && yarn",
+    "service": "cd packages/service && yarn"
+  }
+}

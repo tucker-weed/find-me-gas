@@ -1,0 +1,22 @@
+version: 3
+jobs:
+  build:
+    docker:
+      - image: circleci/node
+    steps:
+      - checkout
+      # cache logic
+      - restore_cache:
+          key: module-cache-{{ .Branch }}-{{ checksum "yarn.lock" }}
+      - run:
+          command: |
+            yarn
+      - save_cache:
+          key: module-cache-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          paths:
+            - "~/.module-cache"
+      # run tests
+      - run:
+          name: Running tests
+          command: |
+            ls
