@@ -5,26 +5,31 @@ import axios from "axios";
 const config = {
   headers: {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET",
+    "Access-Control-Allow-Methods": "GET, POST",
   },
 };
 
 function App() {
-  const [message, setMessage] = useState("");
-
   return (
     <div className="App">
-      <span>{message}</span>
-      <br />
-      <button
-        onClick={() => {
-          axios
-            .get("http://localhost:6001", config)
-            .then(({ data }) => setMessage(message + data + " "));
-        }}
-      >
-        ping
-      </button>
+      <div>
+        <h2>Spotify Authorization</h2>
+        <a href={"http://localhost:6001/spotify/auth"}>Auth</a>
+      </div>
+      <div>
+        <h2>Playlist Creation</h2>
+        <form action="http://localhost:6001/spotify/api/" method="post">
+          <input type="hidden" name="type" value="createPlaylist" />
+          <label>Enter name for new playlist: </label>
+          <input type="text" name="playlistName" />
+          <br />
+          <label>Enter seed playlist ID: </label>
+          <input type="text" name="seedId" />
+          <br />
+          <br />
+          <button type="submit">Generate Playlist</button>
+        </form>
+      </div>
     </div>
   );
 }

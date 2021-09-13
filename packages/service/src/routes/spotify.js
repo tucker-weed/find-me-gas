@@ -10,39 +10,42 @@ import {
 const router = express.Router();
 const BASE_URL = "/spotify";
 const redirect_uri = "http://localhost:6001/spotify/auth/callback";
+let token = "";
+let userId = "";
 
 const resolvePayloadToAction = async (payload, res) => {
+  const collectedData = {
+    message: "",
+    data: null,
+  };
   switch (payload.type) {
-    case "getUser":
-      const data = await getSpotifyUser(payload.access_token);
-      res.send(data);
-      break;
     case "createPlaylist":
-      const { access_token, userId, seedId, playlistName } = payload;
-      const engine = new SongEngine(false, seedId, access_token, {});
+      const { seedId, playlistName } = payload;
+      const engine = new SongEngine(false, seedId, token, {});
       const trackIds = await engine.algorithm("create", null);
       const createPlaylistResponse = await apiPutNewPlaylist(
         `https://api.spotify.com/v1/users/${userId}/playlists`,
-        access_token,
+        token,
         playlistName
       );
       await apiPostTracks(
         `https://api.spotify.com/v1/playlists/${createPlaylistResponse.data.id}/tracks`,
-        access_token,
+        token,
         trackIds.slice(0, 100).map((elem) => elem.uri),
         0
       );
-      res.sendStatus(200);
-      break;
+      collectedData.message = "Successfully created a new playlist"
+      return collectedData;
     default:
       throw new Error("No valid payload to API options");
   }
 };
 
 /* GET interactions with Spotify API */
-router.post(`${BASE_URL}/api`, function (req, res, next) {
+router.post(`${BASE_URL}/api`, async function (req, res, next) {
   try {
-    resolvePayloadToAction(req.body, res);
+    const data = await resolvePayloadToAction(req.body, res);
+    res.redirect(`http://localhost:3000/api_success/${data}`);
   } catch (e) {
     console.log(e);
     res.send({ error: "Spotify API: bad payload" });
@@ -59,9 +62,13 @@ router.get(`${BASE_URL}/auth`, function (req, res, next) {
 /* GET Spotify access token */
 router.get(`${BASE_URL}/auth/callback`, async function (req, res, next) {
   try {
-    const { token } = await authorizeStepTwo(redirect_uri, req.query.code);
-    res.send({ token });
+    const authPayload = await authorizeStepTwo(redirect_uri, req.query.code);
+    token = authPayload.token;
+    const { data } = await getSpotifyUser(token);
+    userId = data.id;
+    res.redirect(`http://localhost:3000/auth_success`);
   } catch (e) {
+    console.log(e);
     res.send({ error: "Spotify auth: could not get user access token" });
   }
 });
