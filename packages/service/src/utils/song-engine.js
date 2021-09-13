@@ -16,7 +16,8 @@ export default class SongEngine {
   _lookForRelated;
   _seenSongs;
   _tracks;
-  _maxRuns = 2;
+  _returnQueue;
+  _maxRuns = 4;
 
   constructor(lookForRelated, playlistId, token, seenSongs) {
     this._playlistId = playlistId;
@@ -24,6 +25,7 @@ export default class SongEngine {
     this._lookForRelated = lookForRelated;
     this._seenSongs = seenSongs;
     this._tracks = {};
+    this._returnQueue = new PriorityQueue("count", true);
   }
 
   /**
@@ -87,18 +89,18 @@ export default class SongEngine {
       }
     }
 
-    danceArray.sort(function (a, b) {
-      return a - b;
-    });
-    valenceArray.sort(function (a, b) {
-      return a - b;
-    });
-    energyArray.sort(function (a, b) {
-      return a - b;
-    });
-    acoustArray.sort(function (a, b) {
-      return a - b;
-    });
+    // danceArray.sort(function (a, b) {
+    //   return a - b;
+    // });
+    // valenceArray.sort(function (a, b) {
+    //   return a - b;
+    // });
+    // energyArray.sort(function (a, b) {
+    //   return a - b;
+    // });
+    // acoustArray.sort(function (a, b) {
+    //   return a - b;
+    // });
     popArray.sort(function (a, b) {
       return a - b;
     });
@@ -150,12 +152,12 @@ export default class SongEngine {
       popArray[popArray.length - 1],
     ];
     return {
-      quartsDance: quartsDance,
-      quartsValence: quartsValence,
-      quartsEnergy: quartsEnergy,
-      quartsAcoust: quartsAcoust,
-      quartsPop: quartsPop,
-      averages: averages,
+      quartsDance,
+      quartsValence,
+      quartsEnergy,
+      quartsAcoust,
+      quartsPop,
+      averages,
     };
   };
 
@@ -168,17 +170,12 @@ export default class SongEngine {
   _getSeededRecs = async (playData, artistIds) => {
     const idString = artistIds.join(",");
     const url =
-      "https://api.spotify.com/v1/recommendations?limit=100&seed_tracks=" +
+      "https://api.spotify.com/v1/recommendations?limit=100&seed_artists=" +
       idString +
       "&market=from_token";
     const response = await this._apiGet(url);
     const tracks = response.data.tracks;
-    const trackIds = [];
-
-    // MAAAAAAAAAAAAAAARKED
-    for (let i = 0; i < tracks.length; i++) {
-      trackIds.push(tracks[i].id);
-    }
+    const trackIds = tracks.map((elem) => elem.id);
 
     return { trackIds: trackIds, response: response };
   };
@@ -201,7 +198,7 @@ export default class SongEngine {
         idAccum.push(artistsCopy[i]);
       }
 
-      if (artistsCopy.length == 0) {
+      if (artistsCopy.length === 0) {
         runs += 1;
         this._shuffleArray(artistIds);
         artistsCopy = artistIds;
@@ -221,11 +218,13 @@ export default class SongEngine {
         for (let i = 0; i < filtered.length; i++) {
           const id = filtered[i].id;
           if (!this._tracks[id] && !playData["seedTracks"][id]) {
-            this._tracks[id] = {
+            const obj = {
+              ...filtered[i],
               name: filtered[i]["name"],
               count: 1,
             };
-            uniqueSongs.push(filtered[i]);
+            this._tracks[id] = obj;
+            uniqueSongs.push(obj);
           } else if (!playData["seedTracks"][id]) {
             this._tracks[id]["count"] += 1;
           }
@@ -233,7 +232,7 @@ export default class SongEngine {
         songsToReturn.push(...uniqueSongs);
       }
     }
-
+    songsToReturn.sort((a, b) => b.count - a.count);
     return songsToReturn;
   };
   /**
@@ -309,6 +308,7 @@ export default class SongEngine {
     }
 
     const artistIds = [];
+    const trackIds = [];
     const popArray = [];
     let addedArtists = {};
     let playlistToReturn;
@@ -318,15 +318,18 @@ export default class SongEngine {
         for (let k = 0; k < playlistItems[i].track.artists.length; k++) {
           const artist_id = playlistItems[i].track.artists[k].id;
           addedArtists[artist_id] = true;
+          artistIds.push(playlistItems[i].track.artists[k].id);
         }
       }
+      trackIds.push(playlistItems[i].track.id);
       popArray.push(playlistItems[i].track.popularity);
-      artistIds.push(playlistItems[i].track.id);
       seedTracks[playlistItems[i].track.id] = true;
     }
 
-    const playData = await this._collectPlaylistData(popArray, artistIds);
-    playData["seedTracks"] = seedTracks;
+    const playData = {
+      ...(await this._collectPlaylistData(popArray, trackIds)),
+      seedTracks,
+    };
 
     if (mode === "create" && artistSeeds) {
       if (this._lookForRelated) {
