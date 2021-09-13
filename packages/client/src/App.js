@@ -1,13 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
 import "./App.css";
-import axios from "axios";
-
-const config = {
-  headers: {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST",
-  },
-};
 
 function App() {
   return (
