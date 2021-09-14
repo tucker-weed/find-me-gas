@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import "./App.css";
 
-function App() {
-  const [state, setState] = useState({ loading: false, message: "" });
+export const SpotifyController = ({ postAuth }) => {
+  const [state, setState] = useState({
+    loading: false,
+    message: postAuth === "auth_success" ? "Logged in to Spotify" : "",
+  });
   const [playlistName, setPlaylistName] = useState("");
   const [seedId, setSeedId] = useState("");
 
@@ -18,11 +20,16 @@ function App() {
       });
   };
 
+  const authorize = () => {
+    setState({ ...state, loading: true });
+    window.location.href = "http://localhost:6001/spotify/auth";
+  };
+
   return (
-    <div className="App">
+    <div>
       <div>
         <h2>Spotify Authorization</h2>
-        <a href={"http://localhost:6001/spotify/auth"}>Auth</a>
+        <button onClick={authorize}>Login</button>
       </div>
       <div>
         <h2>Playlist Creation</h2>
@@ -48,6 +55,6 @@ function App() {
       </div>
     </div>
   );
-}
+};
 
-export default App;
+export default SpotifyController;
