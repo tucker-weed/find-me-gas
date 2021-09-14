@@ -1,7 +1,23 @@
-import React from "react";
+import React, { useState } from "react";
 import "./App.css";
 
 function App() {
+  const [state, setState] = useState({ loading: false, message: "" });
+  const [playlistName, setPlaylistName] = useState("");
+  const [seedId, setSeedId] = useState("");
+
+  const createPlaylist = () => {
+    setState({ ...state, loading: true });
+    fetch("http://localhost:6001/spotify/api", {
+      method: "POST",
+      body: JSON.stringify({ seedId, playlistName, type: "createPlaylist" }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setState({ loading: false, message: data.message });
+      });
+  };
+
   return (
     <div className="App">
       <div>
@@ -10,17 +26,25 @@ function App() {
       </div>
       <div>
         <h2>Playlist Creation</h2>
-        <form action="http://localhost:6001/spotify/api/" method="post">
-          <input type="hidden" name="type" value="createPlaylist" />
-          <label>Enter name for new playlist: </label>
-          <input type="text" name="playlistName" />
-          <br />
-          <label>Enter seed playlist ID: </label>
-          <input type="text" name="seedId" />
-          <br />
-          <br />
-          <button type="submit">Generate Playlist</button>
-        </form>
+        <label>Enter name for new playlist: </label>
+        <input
+          type="text"
+          name="playlistName"
+          onChange={(evt) => setPlaylistName(evt.target.value)}
+        />
+        <br />
+        <label>Enter seed playlist ID: </label>
+        <input
+          type="text"
+          name="seedId"
+          onChange={(evt) => setSeedId(evt.target.value)}
+        />
+        <br />
+        <br />
+        <button onClick={createPlaylist}>Generate Playlist</button>
+        <br />
+        <br />
+        <span>{state.loading ? "Loading..." : state.message}</span>
       </div>
     </div>
   );

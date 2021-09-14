@@ -34,7 +34,7 @@ const resolvePayloadToAction = async (payload, res) => {
         trackIds.slice(0, 100).map((elem) => elem.uri),
         0
       );
-      collectedData.message = "Successfully created a new playlist"
+      collectedData.message = "Successfully created a new playlist";
       return collectedData;
     default:
       throw new Error("No valid payload to API options");
@@ -45,7 +45,7 @@ const resolvePayloadToAction = async (payload, res) => {
 router.post(`${BASE_URL}/api`, async function (req, res, next) {
   try {
     const data = await resolvePayloadToAction(req.body, res);
-    res.redirect(`http://localhost:3000/api_success/${data}`);
+    res.send(data);
   } catch (e) {
     console.log(e);
     res.send({ error: "Spotify API: bad payload" });
