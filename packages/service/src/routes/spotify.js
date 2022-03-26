@@ -1,4 +1,5 @@
 import express from "express";
+import PlayerController from "../utils/player-controller.js";
 import SongEngine from "../utils/song-engine.js";
 import {
   authorizeStepOne,
@@ -20,22 +21,31 @@ const resolvePayloadToAction = async (payload, res) => {
   };
   switch (payload.type) {
     case "createPlaylist":
-      const { seedId, playlistName } = payload;
-      const engine = new SongEngine(false, seedId, token, {});
-      const trackIds = await engine.algorithm("create", null);
-      const createPlaylistResponse = await apiPutNewPlaylist(
-        `https://api.spotify.com/v1/users/${userId}/playlists`,
-        token,
-        playlistName
-      );
-      await apiPostTracks(
-        `https://api.spotify.com/v1/playlists/${createPlaylistResponse.data.id}/tracks`,
-        token,
-        trackIds.slice(0, 100).map((elem) => elem.uri),
-        0
-      );
-      collectedData.message = "Successfully created a new playlist";
-      return collectedData;
+      {
+        const { seedId, playlistName } = payload;
+        const engine = new SongEngine(false, seedId, token, {});
+        const trackIds = await engine.algorithm(null);
+        const createPlaylistResponse = await apiPutNewPlaylist(
+          `https://api.spotify.com/v1/users/${userId}/playlists`,
+          token,
+          playlistName
+        );
+        await apiPostTracks(
+          `https://api.spotify.com/v1/playlists/${createPlaylistResponse.data.id}/tracks`,
+          token,
+          trackIds.slice(0, 100).map((elem) => elem.uri),
+          0
+        );
+        collectedData.message = "Successfully created a new playlist";
+        return collectedData;
+      }
+    case "getSuggestions":
+      {
+        const controller = new PlayerController(token)
+        const trackIds = await controller.poll(20)
+        collectedData.message = "Suggested tracks: " + trackIds.join("\n");
+        return collectedData;
+      }
     default:
       throw new Error("No valid payload to API options");
   }
@@ -55,7 +65,7 @@ router.post(`${BASE_URL}/api`, async function (req, res, next) {
 /* GET Spotify auth code */
 router.get(`${BASE_URL}/auth`, function (req, res, next) {
   const scopes =
-    "user-read-email playlist-modify-private playlist-read-private playlist-modify-public user-library-modify";
+    "user-read-playback-state user-modify-playback-state user-read-email playlist-modify-private playlist-read-private playlist-modify-public user-library-modify user-library-read";
   authorizeStepOne(res, redirect_uri, scopes);
 });
 

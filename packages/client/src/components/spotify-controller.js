@@ -20,6 +20,18 @@ export const SpotifyController = ({ postAuth }) => {
       });
   };
 
+  const getSuggestions = () => {
+    setState({ ...state, loading: true });
+    fetch("http://localhost:6001/spotify/api", {
+      method: "POST",
+      body: JSON.stringify({ type: "getSuggestions" }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setState({ loading: false, message: data.message });
+      });
+  };
+
   const authorize = () => {
     setState({ ...state, loading: true });
     window.location.href = "http://localhost:6001/spotify/auth";
@@ -49,6 +61,8 @@ export const SpotifyController = ({ postAuth }) => {
         <br />
         <br />
         <button onClick={createPlaylist}>Generate Playlist</button>
+        <br />
+        <button onClick={getSuggestions}>Get Current Song Radio</button>
         <br />
         <br />
         <span>{state.loading ? "Loading..." : state.message}</span>
