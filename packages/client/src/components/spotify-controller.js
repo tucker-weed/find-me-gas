@@ -3,14 +3,14 @@ import React, { useState } from "react";
 export const SpotifyController = ({ postAuth }) => {
   const [state, setState] = useState({
     loading: false,
-    message: postAuth === "auth_success" ? "Logged in to Spotify" : "",
+    message: "",
   });
   const [playlistName, setPlaylistName] = useState("");
   const [seedId, setSeedId] = useState("");
 
   const createPlaylist = () => {
     setState({ ...state, loading: true });
-    fetch("http://localhost:6001/spotify/api", {
+    fetch("https://find-me-gas.herokuapp.com/spotify/api", {
       method: "POST",
       body: JSON.stringify({ seedId, playlistName, type: "createPlaylist" }),
     })
@@ -22,7 +22,7 @@ export const SpotifyController = ({ postAuth }) => {
 
   const getSuggestions = () => {
     setState({ ...state, loading: true });
-    fetch("http://localhost:6001/spotify/api", {
+    fetch("https://find-me-gas.herokuapp.com/spotify/api", {
       method: "POST",
       body: JSON.stringify({ type: "getSuggestions" }),
     })
@@ -33,8 +33,8 @@ export const SpotifyController = ({ postAuth }) => {
   };
 
   const authorize = () => {
-    setState({ ...state, loading: true });
-    window.location.href = "http://localhost:6001/spotify/auth";
+    setState({ ...state, message: "Login success" });
+    window.location.href = "https://find-me-gas.herokuapp.com/spotify/auth";
   };
 
   return (

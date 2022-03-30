@@ -4,11 +4,9 @@
  * Module dependencies.
  */
 
-import dotenv from "dotenv";
 import app from "../src/app.js";
 import debugModule from "debug";
 import http from "http";
-dotenv.config();
 const debug = debugModule("server:server");
 
 /**

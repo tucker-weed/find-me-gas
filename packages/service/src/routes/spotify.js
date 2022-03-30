@@ -10,7 +10,7 @@ import {
 } from "../utils/spotify-api.js";
 const router = express.Router();
 const BASE_URL = "/spotify";
-const redirect_uri = "http://localhost:6001/spotify/auth/callback";
+const redirect_uri = "https://find-me-gas.herokuapp.com/spotify/auth/callback";
 let token = "";
 let userId = "";
 
@@ -76,7 +76,7 @@ router.get(`${BASE_URL}/auth/callback`, async function (req, res, next) {
     token = authPayload.token;
     const { data } = await getSpotifyUser(token);
     userId = data.id;
-    res.redirect(`http://localhost:3000/auth_success`);
+    res.send({ userId: userId });
   } catch (e) {
     console.log(e);
     res.send({ error: "Spotify auth: could not get user access token" });
