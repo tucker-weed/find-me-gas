@@ -390,7 +390,16 @@ export default class SongEngine {
   };
 
   quickSuggestions = async (numSuggestions, seedTrack) => {
-    const { trackIds } = await this._getSeededRecs({flag: 1}, seedTrack)
-    return await this._collectPlaylistData2(trackIds, seedTrack, numSuggestions)
+    const howMany = 5
+    let newTrackIds = []
+    for (let i = 0; i < howMany; i++) {
+      const { trackIds } = await this._getSeededRecs({flag: 1}, seedTrack)
+      for (let j = 0; j < howMany; j++) {
+        if (!newTrackIds.includes(trackIds[j])) {
+          newTrackIds.push(trackIds[j])
+        }
+      }
+    }
+    return await this._collectPlaylistData2(newTrackIds, seedTrack, numSuggestions)
   }
 }
