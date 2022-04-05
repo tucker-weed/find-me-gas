@@ -17,8 +17,13 @@ export default class PlayerController {
 
     poll = async numSuggestions => {
         let img = { trackPlaying: null };
-        while (!(!!img.trackPlaying)) {
+        let breaker = 0;
+        while (!(!!img.trackPlaying) && breaker < 20) {
+            breaker++;
             img = await apiGetPlayingData(this._token);
+        }
+        if (!(!!img.trackPlaying)) {
+            return []
         }
         const trackIds = (await this._engine.quickSuggestions(numSuggestions, img.trackPlaying)).map((elem) => elem.id)
         const createPlaylistResponse = await apiPutNewPlaylist(

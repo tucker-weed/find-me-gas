@@ -43,7 +43,11 @@ const resolvePayloadToAction = async (payload, res) => {
       {
         const controller = new PlayerController(token)
         const trackIds = await controller.poll(20)
-        collectedData.message = "Suggested tracks: " + trackIds.join("\n");
+        if (trackIds.length > 0) {
+          collectedData.message = "Suggested tracks: " + trackIds.join("\n");
+        } else {
+          collectedData.message = "Error: couldn't get currently playing song"
+        }
         return collectedData;
       }
     default:
