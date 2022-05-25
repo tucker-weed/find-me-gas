@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getPlaylistTracks } from "./spotify-api.js";
+import PriorityQueue from "./priority-queue.js";
 
 /**
  * SongEngine class contains methods which filter or produce songs on spotify
@@ -167,11 +168,39 @@ export default class SongEngine {
    */
     _collectPlaylistData2 = async (trackIds, refTrack, numSuggestions) => {
     const allArray = []
-
-    const refSongUrl =
-        "https://api.spotify.com/v1/audio-features/" + refTrack;
-
-    const refTrackData = (await this._apiGet(refSongUrl)).data;
+    const refTrackData = {
+      danceability: 0.0,
+      valence: 0.0,
+      energy: 0.0,
+      acousticness: 0.0
+    }
+    let totalCount = 0
+    for (let i = 0; i < refTrack.length; i++) {
+      const refSongUrl =
+        "https://api.spotify.com/v1/audio-features/" + refTrack[i];
+      const currRefTrackData = (await this._apiGet(refSongUrl)).data;
+      if (!(!!currRefTrackData.danceability)) {
+        return []
+      }
+      if (!(!!currRefTrackData.valence)) {
+        return []
+      }
+      if (!(!!currRefTrackData.energy)) {
+        return []
+      }
+      if (!(!!currRefTrackData.acousticness)) {
+        return []
+      }
+      totalCount++
+      refTrackData.danceability += currRefTrackData.danceability
+      refTrackData.valence += currRefTrackData.valence
+      refTrackData.energy += currRefTrackData.energy
+      refTrackData.acousticness += currRefTrackData.acousticness
+    }
+    refTrackData.danceability /= totalCount
+    refTrackData.valence /= totalCount
+    refTrackData.energy /= totalCount
+    refTrackData.acousticness /= totalCount
 
     while (trackIds) {
       const songsUrl =
@@ -185,7 +214,7 @@ export default class SongEngine {
       const trackData = await this._apiGet(songsUrl);
       const features = trackData.data.audio_features;
       for (let j = 0; j < features.length; j++) {
-        if (!!features[j]["danceability"] && !!features[j]["valence"] && !!features[j]["energy"] && !!features[j]["acousticness"]) {
+        if (features[j] != null && !!features[j]["danceability"] && !!features[j]["valence"] && !!features[j]["energy"] && !!features[j]["acousticness"]) {
           allArray.push({
             id: features[j].uri,
             val: Math.pow(features[j].danceability - refTrackData.danceability, 2) +
@@ -214,19 +243,45 @@ export default class SongEngine {
     let idString
     if (!!playData.flag) {
       idString = artistIds;
-    } else {
-      idString = artistIds.join(","); 
-    }
-    const url =
+      const url =
       "https://api.spotify.com/v1/recommendations?limit=100" +
       "&seed_tracks=" +
       idString +
       "&market=from_token";
-    const response = await this._apiGet(url);
-    const tracks = response.data.tracks;
-    const trackIds = tracks.map((elem) => elem.id);
+      const response = await this._apiGet(url);
+      const tracks = response.data.tracks;
+      const trackIds = tracks.map((elem) => elem.id);
 
-    return { trackIds: trackIds, response: response };
+      return { trackIds: trackIds, response: response };
+    } else {
+      idString = artistIds.join(",");
+      const allTrackIds = []
+      for (let i = 0; i < artistIds.length; i++) {
+        const url =
+        "https://api.spotify.com/v1/recommendations?limit=100" +
+        "&seed_tracks=" +
+        artistIds[i] +
+        "&market=from_token";
+        const response = await this._apiGet(url);
+        const tracks = response.data.tracks;
+        const trackIds = tracks.map((elem) => elem.id); 
+        allTrackIds.push(...trackIds)
+      }
+      // TODO verify whether mixed seeds is good
+      if (artistIds.length > 1 && false) {
+        const url =
+        "https://api.spotify.com/v1/recommendations?limit=100" +
+        "&seed_tracks=" +
+        idString +
+        "&market=from_token";
+        const response = await this._apiGet(url);
+        const tracks = response.data.tracks;
+        const trackIds = tracks.map((elem) => elem.id);
+        allTrackIds.push(...trackIds)
+      }
+
+      return { trackIds: trackIds, response: response };
+    }
   };
 
   /**
@@ -389,17 +444,49 @@ export default class SongEngine {
     return await this._artistsToPlaylist(playData, artistIds);
   };
 
-  quickSuggestions = async (numSuggestions, seedTrack) => {
-    const howMany = 5
-    let newTrackIds = []
-    for (let i = 0; i < howMany; i++) {
-      const { trackIds } = await this._getSeededRecs({flag: 1}, seedTrack)
-      for (let j = 0; j < howMany; j++) {
-        if (!newTrackIds.includes(trackIds[j])) {
-          newTrackIds.push(trackIds[j])
+  getRandomInt = max => {
+    return Math.floor(Math.random() * max);
+  }
+
+  quickSuggestions = async (numSuggestions, seedTrackList) => {
+    const howMany = seedTrackList.length
+    const partition = numSuggestions / howMany
+    const newTrackIds = []
+    const freqMap = {}
+    let addedCount = 0
+    let partAdded = 0
+    let KILL = false
+    for (let i = 0; i < howMany && !KILL; i++) {
+      for (let k = 0; k < howMany && !KILL; k++) {
+        const data = await this._getSeededRecs({flag: 1}, [seedTrackList[i]])
+        const uniques = []
+        for (let j = 0; j < data.trackIds.length; j++) {
+          if (!freqMap[data.trackIds[j].id]) {
+            uniques.push(data.trackIds[j])
+          }
+        }
+        const trackIds = await this._collectPlaylistData2(uniques, [seedTrackList[k]], numSuggestions)
+        let KILLPART = false
+        for (let j = 0; j < trackIds.length && !KILL && !KILLPART; j++) {
+          if (!freqMap[trackIds[j].id]) {
+            freqMap[trackIds[j].id] = true
+            const rand = this.getRandomInt(2)
+            if (addedCount < numSuggestions && rand !== 1) {
+              newTrackIds.push(trackIds[j])
+              addedCount++
+              partAdded++
+            } else if (addedCount === numSuggestions) {
+              KILL = true
+            } else if (partAdded >= partition) {
+              KILLPART = true
+            }
+          }
         }
       }
+      if (i == (howMany - 1) && addedCount < numSuggestions) {
+        i = -1
+      }
     }
-    return await this._collectPlaylistData2(newTrackIds, seedTrack, numSuggestions)
+    return newTrackIds.slice(0, numSuggestions)
   }
 }

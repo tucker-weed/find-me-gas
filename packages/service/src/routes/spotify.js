@@ -10,7 +10,7 @@ import {
 } from "../utils/spotify-api.js";
 const router = express.Router();
 const BASE_URL = "/spotify";
-const redirect_uri = "https://find-me-gas.herokuapp.com/spotify/auth/callback";
+const redirect_uri = "https://find-me-gas.herokuapp.com/spotify/auth/callback"; // https://find-me-gas.herokuapp.com/spotify/auth/callback
 let token = "";
 let userId = "";
 
@@ -41,10 +41,28 @@ const resolvePayloadToAction = async (payload, res) => {
       }
     case "getSuggestions":
       {
+        const { seeds } = payload;
         const controller = new PlayerController(token)
-        const trackIds = await controller.poll(20)
+        let trackIds = []
+        if (!!seeds && !!seeds.length && seeds.length > 0) {
+          trackIds = await controller.poll(40, seeds)
+        } else {
+          trackIds = await controller.poll(40)
+        }
         if (trackIds.length > 0) {
           collectedData.message = "Suggested tracks: " + trackIds.join("\n");
+        } else {
+          collectedData.message = "Error: couldn't get currently playing song"
+        }
+        return collectedData;
+      }
+    case "getPlaying":
+      {
+        const controller = new PlayerController(token)
+        const trackId = await controller.pollSeed()
+        if (trackId) {
+          collectedData.message = "Currently playing: " + trackId
+          collectedData.data = trackId
         } else {
           collectedData.message = "Error: couldn't get currently playing song"
         }

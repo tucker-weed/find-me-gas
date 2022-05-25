@@ -15,7 +15,7 @@ export default class PlayerController {
         this._sessionID = Date.now()
     }
 
-    poll = async numSuggestions => {
+    pollSeed = async () => {
         let img = { trackPlaying: null };
         let breaker = 0;
         while (!(!!img.trackPlaying) && breaker < 20) {
@@ -23,13 +23,21 @@ export default class PlayerController {
             img = await apiGetPlayingData(this._token);
         }
         if (!(!!img.trackPlaying)) {
-            return []
+            return false
         }
-        const trackIds = (await this._engine.quickSuggestions(numSuggestions, img.trackPlaying)).map((elem) => elem.id)
+        return img.trackPlaying
+    }
+
+    poll = async (numSuggestions, seeds) => {
+        if (!(!!seeds)) {
+            const seed = await this.pollSeed()
+            seeds = [seed]
+        }
+        const trackIds = (await this._engine.quickSuggestions(numSuggestions, seeds)).map((elem) => elem.id)
         const createPlaylistResponse = await apiPutNewPlaylist(
             `https://api.spotify.com/v1/users/12168726728/playlists`,
             this._token,
-            `Snapshot Session From ${img.songName} #` + (this._sessionID % 100000)
+            `${(seeds.map(x => x.slice(0, 3))).join(", ")} #` + (this._sessionID % 100000)
         );
         await apiPostTracks(
             `https://api.spotify.com/v1/playlists/${createPlaylistResponse.data.id}/tracks`,

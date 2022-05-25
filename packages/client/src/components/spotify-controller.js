@@ -4,37 +4,69 @@ export const SpotifyController = ({ postAuth }) => {
   const [state, setState] = useState({
     loading: false,
     message: "",
+    seeds: [],
   });
   const [playlistName, setPlaylistName] = useState("");
   const [seedId, setSeedId] = useState("");
 
   const createPlaylist = () => {
     setState({ ...state, loading: true });
-    fetch("https://find-me-gas.herokuapp.com/spotify/api", {
+    fetch("https://find-me-gas.herokuapp.com/spotify/api", { // https://find-me-gas.herokuapp.com/spotify/api
       method: "POST",
       body: JSON.stringify({ seedId, playlistName, type: "createPlaylist" }),
     })
       .then((response) => response.json())
       .then((data) => {
-        setState({ loading: false, message: data.message });
+        setState({ ...state, loading: false, message: data.message });
       });
   };
 
   const getSuggestions = () => {
     setState({ ...state, loading: true });
-    fetch("https://find-me-gas.herokuapp.com/spotify/api", {
+    fetch("https://find-me-gas.herokuapp.com/spotify/api", { // https://find-me-gas.herokuapp.com/spotify/api
       method: "POST",
-      body: JSON.stringify({ type: "getSuggestions" }),
+      body: JSON.stringify({ type: "getSuggestions", seeds: state.seeds }),
     })
       .then((response) => response.json())
       .then((data) => {
-        setState({ loading: false, message: data.message });
+        setState({ ...state, loading: false, message: data.message });
       });
   };
 
+  const addCurrPlayingSeed = () => {
+    const oldState = state
+    setState({ ...state, loading: true });
+    fetch("https://find-me-gas.herokuapp.com/spotify/api", { // https://find-me-gas.herokuapp.com/spotify/api
+      method: "POST",
+      body: JSON.stringify({ type: "getPlaying" }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        const newSeeds = []
+        if (!!data.data) {
+          if (!!oldState.seeds.find(e => e === data.data)) {
+            setState({ ...oldState, message: "Error: can't add same seed twice" });
+            return
+          } else if (oldState.seeds.length === 5) {
+            setState({ ...oldState, message: "Error: max number of seeds reached" });
+            return 
+          }
+          newSeeds.push(data.data)
+        }
+        if (oldState.seeds.length > 0) {
+          newSeeds.push(...oldState.seeds)
+        }
+        setState({ ...state, loading: false, message: data.message, seeds: newSeeds });
+      });
+  };
+
+  const clearSeeds = () => {
+    setState({ ...state, seeds: [] })
+  }
+
   const authorize = () => {
     setState({ ...state, message: "Login success" });
-    window.location.href = "https://find-me-gas.herokuapp.com/spotify/auth";
+    window.location.href = "https://find-me-gas.herokuapp.com/spotify/auth"; // https://find-me-gas.herokuapp.com/spotify/auth 
   };
 
   return (
@@ -63,6 +95,14 @@ export const SpotifyController = ({ postAuth }) => {
         <button onClick={createPlaylist}>Generate Playlist</button>
         <br />
         <button onClick={getSuggestions}>Get Current Song Radio</button>
+        <br />
+        <br />
+        <button onClick={addCurrPlayingSeed}>Add seed to bin</button>
+        <br />
+        <br />
+        <button onClick={clearSeeds}>Delete current seeds</button>
+        <br />
+        <span>{"Current seeds: " + state.seeds}</span>
         <br />
         <br />
         <span>{state.loading ? "Loading..." : state.message}</span>
