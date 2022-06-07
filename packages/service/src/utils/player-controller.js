@@ -28,12 +28,12 @@ export default class PlayerController {
         return img.trackPlaying
     }
 
-    poll = async (numSuggestions, seeds) => {
+    poll = async (numSuggestions, seeds, optionalTarget) => {
         if (!(!!seeds)) {
             const seed = await this.pollSeed()
             seeds = [seed]
         }
-        const trackIds = (await this._engine.quickSuggestions(numSuggestions, seeds)).map((elem) => elem.id)
+        const trackIds = (await this._engine.quickSuggestions(numSuggestions, seeds, optionalTarget)).map((elem) => elem.id)
         const createPlaylistResponse = await apiPutNewPlaylist(
             `https://api.spotify.com/v1/users/12168726728/playlists`,
             this._token,

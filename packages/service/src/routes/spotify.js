@@ -41,11 +41,15 @@ const resolvePayloadToAction = async (payload, res) => {
       }
     case "getSuggestions":
       {
-        const { seeds } = payload;
+        const { seeds, targetIndex } = payload;
+        let optionalTarget = null
+        if (!!targetIndex) {
+          optionalTarget = seeds[targetIndex]
+        }
         const controller = new PlayerController(token)
         let trackIds = []
         if (!!seeds && !!seeds.length && seeds.length > 0) {
-          trackIds = await controller.poll(40, seeds)
+          trackIds = await controller.poll(40, seeds, optionalTarget)
         } else {
           trackIds = await controller.poll(40)
         }

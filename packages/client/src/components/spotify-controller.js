@@ -5,6 +5,7 @@ export const SpotifyController = ({ postAuth }) => {
     loading: false,
     message: "",
     seeds: [],
+    targetIndex: null,
   });
   const [playlistName, setPlaylistName] = useState("");
   const [seedId, setSeedId] = useState("");
@@ -25,7 +26,7 @@ export const SpotifyController = ({ postAuth }) => {
     setState({ ...state, loading: true });
     fetch("https://find-me-gas.herokuapp.com/spotify/api", { // https://find-me-gas.herokuapp.com/spotify/api
       method: "POST",
-      body: JSON.stringify({ type: "getSuggestions", seeds: state.seeds }),
+      body: JSON.stringify({ type: "getSuggestions", seeds: state.seeds, targetIndex: state.targetIndex }),
     })
       .then((response) => response.json())
       .then((data) => {
@@ -61,7 +62,21 @@ export const SpotifyController = ({ postAuth }) => {
   };
 
   const clearSeeds = () => {
-    setState({ ...state, seeds: [] })
+    setState({ ...state, seeds: [], targetIndex: null })
+  }
+
+  const createTargetButtons = s => (
+    <div> 
+      <button onClick={() => setTarget(s)}>
+        {s}
+      </button>
+      <br />
+    </div>
+  );
+
+  const setTarget = s => {
+    const idx = state.seeds.findIndex(x => x === s)
+    setState({ ...state, targetIndex: idx, message: "Target set to: " + idx }); 
   }
 
   const authorize = () => {
@@ -99,6 +114,10 @@ export const SpotifyController = ({ postAuth }) => {
         <br />
         <button onClick={addCurrPlayingSeed}>Add seed to bin</button>
         <br />
+        <br />
+        <>
+          {state.seeds.map(createTargetButtons)}
+        </> 
         <br />
         <button onClick={clearSeeds}>Delete current seeds</button>
         <br />

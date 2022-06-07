@@ -448,7 +448,7 @@ export default class SongEngine {
     return Math.floor(Math.random() * max);
   }
 
-  quickSuggestions = async (numSuggestions, seedTrackList) => {
+  quickSuggestions = async (numSuggestions, seedTrackList, optionalTarget) => {
     const howMany = seedTrackList.length
     const partition = numSuggestions / howMany
     const newTrackIds = []
@@ -465,7 +465,11 @@ export default class SongEngine {
             uniques.push(data.trackIds[j])
           }
         }
-        const trackIds = await this._collectPlaylistData2(uniques, [seedTrackList[k]], numSuggestions)
+        let target = [seedTrackList[k]]
+        if (!!optionalTarget) {
+          target = [optionalTarget]
+        }
+        const trackIds = await this._collectPlaylistData2(uniques, target, numSuggestions)
         let KILLPART = false
         for (let j = 0; j < trackIds.length && !KILL && !KILLPART; j++) {
           if (!freqMap[trackIds[j].id]) {
