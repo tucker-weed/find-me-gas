@@ -1,5 +1,12 @@
 import React, { useState } from "react";
 
+const DEBUG = false;
+let baseaddr = "https://find-me-gas.herokuapp.com";
+
+if (DEBUG) {
+  baseaddr = "http://localhost:6001"; 
+}
+
 export const SpotifyController = ({ postAuth }) => {
   const [state, setState] = useState({
     loading: false,
@@ -12,7 +19,7 @@ export const SpotifyController = ({ postAuth }) => {
 
   const createPlaylist = () => {
     setState({ ...state, loading: true });
-    fetch("https://find-me-gas.herokuapp.com/spotify/api", { // https://find-me-gas.herokuapp.com/spotify/api
+    fetch(`${baseaddr}/spotify/api`, {
       method: "POST",
       body: JSON.stringify({ seedId, playlistName, type: "createPlaylist" }),
     })
@@ -24,7 +31,7 @@ export const SpotifyController = ({ postAuth }) => {
 
   const getSuggestions = () => {
     setState({ ...state, loading: true });
-    fetch("https://find-me-gas.herokuapp.com/spotify/api", { // https://find-me-gas.herokuapp.com/spotify/api
+    fetch(`${baseaddr}/spotify/api`, {
       method: "POST",
       body: JSON.stringify({ type: "getSuggestions", seeds: state.seeds, targetIndex: state.targetIndex }),
     })
@@ -37,7 +44,7 @@ export const SpotifyController = ({ postAuth }) => {
   const addCurrPlayingSeed = () => {
     const oldState = state
     setState({ ...state, loading: true });
-    fetch("https://find-me-gas.herokuapp.com/spotify/api", { // https://find-me-gas.herokuapp.com/spotify/api
+    fetch(`${baseaddr}/spotify/api`, {
       method: "POST",
       body: JSON.stringify({ type: "getPlaying" }),
     })
@@ -81,7 +88,7 @@ export const SpotifyController = ({ postAuth }) => {
 
   const authorize = () => {
     setState({ ...state, message: "Login success" });
-    window.location.href = "https://find-me-gas.herokuapp.com/spotify/auth"; // https://find-me-gas.herokuapp.com/spotify/auth 
+    window.location.href = `${baseaddr}/spotify/auth`;
   };
 
   return (

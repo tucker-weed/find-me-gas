@@ -10,7 +10,14 @@ import {
 } from "../utils/spotify-api.js";
 const router = express.Router();
 const BASE_URL = "/spotify";
-const redirect_uri = "https://find-me-gas.herokuapp.com/spotify/auth/callback"; // https://find-me-gas.herokuapp.com/spotify/auth/callback
+
+let redirect_uri = "https://find-me-gas.herokuapp.com/spotify/auth/callback";
+const DEBUG = false;
+
+if (DEBUG) {
+  redirect_uri = "http://localhost:6001/spotify/auth/callback"; 
+}
+
 let token = "";
 let userId = "";
 
