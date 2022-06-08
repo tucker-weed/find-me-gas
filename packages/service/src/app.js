@@ -6,10 +6,11 @@ import bodyParser from "body-parser";
 import logger from "morgan";
 
 import indexRouter from "./routes/index.js";
-import spotifyRouter from "./routes/spotify.js";
+import spotifyRouter from "./routes/spotify-api.js";
 import cors from "cors";
 
 const app = express();
+const SPOTIFY_BASE_URL = "/spotify";
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -27,8 +28,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(path.resolve(path.dirname("")), "public")));
 
+// custom routes
 app.use(indexRouter);
-app.use(spotifyRouter);
+app.use(SPOTIFY_BASE_URL, spotifyRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
