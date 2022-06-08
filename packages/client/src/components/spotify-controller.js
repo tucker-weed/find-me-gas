@@ -114,7 +114,8 @@ export const SpotifyController = ({ postAuth }) => {
         <br />
         <button onClick={checkLogin}>Check still authorized</button>
       </div>
-      <div>
+      <br />
+      <div style={{backgroundColor: "#E9DAC4"}}>
         <div style={{backgroundColor: "#E9DAC4"}}>
           <h2>Radio Generation</h2>
           <label>Enter optional name for radio: </label>
@@ -131,7 +132,6 @@ export const SpotifyController = ({ postAuth }) => {
           <br />
           <button onClick={addCurrPlayingSeed}>Add seed to bin</button>
         </div>
-        <br />
         <br />
         <div style={{backgroundColor: "#E9DAC4"}}>
           <>
@@ -150,7 +150,7 @@ export const SpotifyController = ({ postAuth }) => {
           <br />
         </div>
         <br />
-        <div style={{backgroundColor: "#E9DAC4"}}> 
+        <div style={{backgroundColor: "#BD8E83"}}> 
           <span>{state.loading ? "Loading..." : state.message}</span>
         </div> 
       </div>
