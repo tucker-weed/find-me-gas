@@ -28,16 +28,20 @@ export default class PlayerController {
         return img.trackPlaying
     }
 
-    poll = async (numSuggestions, seeds, optionalTarget) => {
+    poll = async (numSuggestions, radioName, seeds, optionalTarget) => {
         if (!(!!seeds)) {
             const seed = await this.pollSeed()
             seeds = [seed]
+        }
+        let newPlayName = `${(seeds.map(x => x.slice(0, 3))).join(", ")} #` + (this._sessionID % 100000);
+        if (radioName != null) {
+            newPlayName = radioName
         }
         const trackIds = (await this._engine.quickSuggestions(numSuggestions, seeds, optionalTarget)).map((elem) => elem.id)
         const createPlaylistResponse = await apiPutNewPlaylist(
             `https://api.spotify.com/v1/users/12168726728/playlists`,
             this._token,
-            `${(seeds.map(x => x.slice(0, 3))).join(", ")} #` + (this._sessionID % 100000)
+             newPlayName
         );
         await apiPostTracks(
             `https://api.spotify.com/v1/playlists/${createPlaylistResponse.data.id}/tracks`,

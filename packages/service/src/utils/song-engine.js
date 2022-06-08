@@ -1,6 +1,4 @@
 import axios from "axios";
-import { getPlaylistTracks } from "./spotify-api.js";
-import PriorityQueue from "./priority-queue.js";
 
 /**
  * SongEngine class contains methods which filter or produce songs on spotify
@@ -267,186 +265,14 @@ export default class SongEngine {
         const trackIds = tracks.map((elem) => elem.id); 
         allTrackIds.push(...trackIds)
       }
-      // TODO verify whether mixed seeds is good
-      if (artistIds.length > 1 && false) {
-        const url =
-        "https://api.spotify.com/v1/recommendations?limit=100" +
-        "&seed_tracks=" +
-        idString +
-        "&market=from_token";
-        const response = await this._apiGet(url);
-        const tracks = response.data.tracks;
-        const trackIds = tracks.map((elem) => elem.id);
-        allTrackIds.push(...trackIds)
-      }
 
       return { trackIds: trackIds, response: response };
     }
   };
 
-  /**
-   * Takes an array of Artist json and produces 100 track IDs
-   *
-   * @param artistIds - an Array of artist ID strings
-   */
-  _artistsToPlaylist = async (playData, artistIds) => {
-    const songsToReturn = [];
-    let artistsCopy = artistIds;
-    let songsAndResponse = true;
-    let runs = 0;
-    const MAXSEEDS = 5;
-
-    while (runs < this._maxRuns) {
-      const idAccum = [];
-      for (let i = 0; i < artistsCopy.length && i < MAXSEEDS; i++) {
-        idAccum.push(artistsCopy[i]);
-      }
-
-      if (artistsCopy.length === 0) {
-        runs += 1;
-        this._shuffleArray(artistIds);
-        artistsCopy = artistIds;
-        songsAndResponse = null;
-      } else {
-        if (artistsCopy.length > MAXSEEDS) {
-          artistsCopy = artistsCopy.slice(MAXSEEDS, artistsCopy.length);
-        } else {
-          artistsCopy = [];
-        }
-        songsAndResponse = await this._getSeededRecs(playData, idAccum);
-      }
-
-      if (songsAndResponse && songsAndResponse["trackIds"].length > 0) {
-        const tracks = songsAndResponse["response"].data.tracks;
-        const uniqueSongs = [];
-        for (let i = 0; i < tracks.length; i++) {
-          const id = tracks[i].id;
-          if (!this._tracks[id] && !playData["seedTracks"][id]) {
-            const obj = {
-              ...tracks[i],
-              name: tracks[i]["name"],
-              count: 1,
-            };
-            this._tracks[id] = obj;
-            uniqueSongs.push(obj);
-          } else if (!playData["seedTracks"][id]) {
-            this._tracks[id]["count"] += 1;
-          }
-        }
-        songsToReturn.push(...uniqueSongs);
-      }
-    }
-    songsToReturn.sort((a, b) => b.count - a.count);
-    return songsToReturn;
-  };
-  /**
-   * Produces related artists from an Array of artists
-   *
-   * @param addedArtists - json data containing already considered artists
-   * @param max - maximum length allowed for Array to return
-   * @returns - an Array of strings, being related artist IDs
-   */
-  /*
-  _getRelatedArtists = async (addedArtists, max) => {
-    const onlyArtists = Object.keys(addedArtists);
-    this._shuffleArray(onlyArtists);
-    const relatedArtists = [];
-    for (
-      let a = 0;
-      a < onlyArtists.length && relatedArtists.length < max;
-      a++
-    ) {
-      const url =
-        "https://api.spotify.com/v1/artists/" +
-        onlyArtists[a] +
-        "/related-artists";
-      const response = await this._apiGet(url);
-
-      if (response && response.data.artists[0]) {
-        const responseArtists = response.data.artists;
-        const relatedPopularity = new PriorityQueue("popularity", true);
-        for (let i = 0; i < responseArtists.length; i++) {
-          if (!addedArtists[responseArtists[i].id]) {
-            relatedPopularity.enqueue(responseArtists[i]);
-            addedArtists[responseArtists[i].id] = true;
-          }
-        }
-        const savedSize = relatedPopularity.size();
-        for (let i = 0; i < savedSize && i < 3; i++) {
-          const relID = relatedPopularity.dequeue().id;
-          relatedArtists.push(relID);
-        }
-      }
-    }
-    return relatedArtists;
-  }; */
-
-  getTrackCounts = () => {
-    return this._tracks;
-  };
-
-  /**
-   * Main entry point for interaction with the spotify api
-   *
-   * @param artistSeeds - an Array of artistIds to add, or null
-   * @returns - an Array of Track Info Json
-   */
-  algorithm = async (artistSeeds) => {
-    let offset = 0;
-    const playlistItems = [];
-    const seedTracks = {};
-
-    while (offset != -1) {
-      const { data } = await getPlaylistTracks(
-        this._playlistId,
-        offset,
-        this._token
-      );
-      playlistItems.push(...data.tracks.items);
-      if (data["next"]) {
-        offset += 100;
-      } else {
-        offset = -1;
-      }
-    }
-
-    const artistIds = [];
-    const trackIds = [];
-    let addedArtists = {};
-
-    for (let i = 0; i < playlistItems.length; i++) {
-      if (playlistItems[i].track.artists[0]) {
-        for (let k = 0; k < playlistItems[i].track.artists.length; k++) {
-          const artist_id = playlistItems[i].track.artists[k].id;
-          addedArtists[artist_id] = true;
-          artistIds.push(playlistItems[i].track.artists[k].id);
-        }
-      }
-      trackIds.push(playlistItems[i].track.id);
-      seedTracks[playlistItems[i].track.id] = true;
-    }
-
-    const analysis = await this._collectPlaylistData([], trackIds);
-    const playData = {
-      ...analysis,
-      seedTracks,
-    };
-
-    if (this._lookForRelated) {
-      artistIds.push(...Object.keys(addedArtists));
-    }
-    if (artistSeeds) {
-      artistIds.push(...artistSeeds);
-      this._shuffleArray(artistIds);
-      return await this._artistsToPlaylist(playData, artistIds);
-    }
-    this._shuffleArray(artistIds);
-    return await this._artistsToPlaylist(playData, artistIds);
-  };
-
   getRandomInt = max => {
     return Math.floor(Math.random() * max);
-  }
+  };
 
   quickSuggestions = async (numSuggestions, seedTrackList, optionalTarget) => {
     const howMany = seedTrackList.length

@@ -14,26 +14,19 @@ export const SpotifyController = ({ postAuth }) => {
     seeds: [],
     targetIndex: null,
   });
-  const [playlistName, setPlaylistName] = useState("");
-  const [seedId, setSeedId] = useState("");
+  const [playlistName, setPlaylistName] = useState(null);
 
-  const createPlaylist = () => {
-    setState({ ...state, loading: true });
-    fetch(`${baseaddr}/spotify/api`, {
-      method: "POST",
-      body: JSON.stringify({ seedId, playlistName, type: "createPlaylist" }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setState({ ...state, loading: false, message: data.message });
-      });
-  };
+  // vvvv API bridge functions vvvv
 
   const getSuggestions = () => {
     setState({ ...state, loading: true });
     fetch(`${baseaddr}/spotify/api`, {
       method: "POST",
-      body: JSON.stringify({ type: "getSuggestions", seeds: state.seeds, targetIndex: state.targetIndex }),
+      body: JSON.stringify({ type: "getSuggestions",
+      seeds: state.seeds,
+      targetIndex: state.targetIndex,
+      radioName: playlistName 
+    }),
     })
       .then((response) => response.json())
       .then((data) => {
@@ -41,8 +34,18 @@ export const SpotifyController = ({ postAuth }) => {
       });
   };
 
+  const checkLogin = () => {
+    setState({ ...state, loading: true });
+    window.location.href = `${baseaddr}/spotify/auth/loggedin`;
+    setState({ ...state, loading: false }); 
+  };
+
   const addCurrPlayingSeed = () => {
     const oldState = state
+    let oldTarg = null
+    if (state.targetIndex != null) {
+      oldTarg = state.seeds[state.targetIndex];
+    }
     setState({ ...state, loading: true });
     fetch(`${baseaddr}/spotify/api`, {
       method: "POST",
@@ -64,15 +67,30 @@ export const SpotifyController = ({ postAuth }) => {
         if (oldState.seeds.length > 0) {
           newSeeds.push(...oldState.seeds)
         }
-        setState({ ...state, loading: false, message: data.message, seeds: newSeeds });
+        let idx = state.targetIndex
+        if (oldTarg !== null) {
+          idx = newSeeds.findIndex(x => x === oldTarg) 
+        }
+        setState({ ...state, targetIndex: idx, loading: false, message: data.message, seeds: newSeeds });
       });
   };
+
+  const authorize = () => {
+    setState({ ...state, message: "Login success" });
+    window.location.href = `${baseaddr}/spotify/auth`;
+  };
+
+  // vvvv UI helper functions vvvv
 
   const clearSeeds = () => {
     setState({ ...state, seeds: [], targetIndex: null })
   }
 
-  const createTargetButtons = s => (
+  const clearTarget = s => {
+    setState({ ...state, targetIndex: null, message: "Target cleared, using all seed attributes" }); 
+  }
+
+  const createTargetButton = s => (
     <div> 
       <button onClick={() => setTarget(s)}>
         {s}
@@ -83,55 +101,58 @@ export const SpotifyController = ({ postAuth }) => {
 
   const setTarget = s => {
     const idx = state.seeds.findIndex(x => x === s)
-    setState({ ...state, targetIndex: idx, message: "Target set to: " + idx }); 
+    setState({ ...state, targetIndex: idx, message: "Target set to: " + s }); 
   }
 
-  const authorize = () => {
-    setState({ ...state, message: "Login success" });
-    window.location.href = `${baseaddr}/spotify/auth`;
-  };
+  // UI
 
   return (
     <div>
-      <div>
+      <div style={{backgroundColor: "#E9DAC4"}}>
         <h2>Spotify Authorization</h2>
         <button onClick={authorize}>Login</button>
+        <br />
+        <button onClick={checkLogin}>Check still authorized</button>
       </div>
       <div>
-        <h2>Playlist Creation</h2>
-        <label>Enter name for new playlist: </label>
-        <input
-          type="text"
-          name="playlistName"
-          onChange={(evt) => setPlaylistName(evt.target.value)}
-        />
+        <div style={{backgroundColor: "#E9DAC4"}}>
+          <h2>Radio Generation</h2>
+          <label>Enter optional name for radio: </label>
+          <input
+            type="text"
+            name="playlistName"
+            onChange={(evt) => setPlaylistName(evt.target.value)}
+          />
+        </div>
         <br />
-        <label>Enter seed playlist ID: </label>
-        <input
-          type="text"
-          name="seedId"
-          onChange={(evt) => setSeedId(evt.target.value)}
-        />
-        <br />
-        <br />
-        <button onClick={createPlaylist}>Generate Playlist</button>
-        <br />
-        <button onClick={getSuggestions}>Get Current Song Radio</button>
+        <div style={{backgroundColor: "#E9DAC4"}}>
+          <button onClick={getSuggestions}>Get Current Song Radio</button>
+          <br />
+          <br />
+          <button onClick={addCurrPlayingSeed}>Add seed to bin</button>
+        </div>
         <br />
         <br />
-        <button onClick={addCurrPlayingSeed}>Add seed to bin</button>
+        <div style={{backgroundColor: "#E9DAC4"}}>
+          <>
+            {state.seeds.map(createTargetButton)}
+          </> 
+          <br />
+          <span>{"Current target is " + state.targetIndex + ", " 
+                + (state.targetIndex != null ? state.seeds[state.targetIndex] : "")}</span>
+          <br />
+          <button onClick={clearTarget}>Clear target selection</button> 
+          <br />
+          <br />
+          <button onClick={clearSeeds}>Delete current seeds</button>
+          <br />
+          <span>{"Current seeds: " + state.seeds}</span>
+          <br />
+        </div>
         <br />
-        <br />
-        <>
-          {state.seeds.map(createTargetButtons)}
-        </> 
-        <br />
-        <button onClick={clearSeeds}>Delete current seeds</button>
-        <br />
-        <span>{"Current seeds: " + state.seeds}</span>
-        <br />
-        <br />
-        <span>{state.loading ? "Loading..." : state.message}</span>
+        <div style={{backgroundColor: "#E9DAC4"}}> 
+          <span>{state.loading ? "Loading..." : state.message}</span>
+        </div> 
       </div>
     </div>
   );

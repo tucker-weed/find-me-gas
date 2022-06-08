@@ -1,25 +1,23 @@
 import express from "express";
 import PlayerController from "../utils/player-controller.js";
-import SongEngine from "../utils/song-engine.js";
 import {
   authorizeStepOne,
   authorizeStepTwo,
   getSpotifyUser,
-  apiPutNewPlaylist,
-  apiPostTracks,
 } from "../utils/spotify-api.js";
 const router = express.Router();
 const BASE_URL = "/spotify";
 
 let redirect_uri = "https://find-me-gas.herokuapp.com/spotify/auth/callback";
+let redirect_checklogin = "https://find-me-gas-client.herokuapp.com/"
 const DEBUG = false;
 
 if (DEBUG) {
   redirect_uri = "http://localhost:6001/spotify/auth/callback"; 
+  redirect_checklogin = "http://localhost:3000";
 }
 
 let token = "";
-let userId = "";
 
 const resolvePayloadToAction = async (payload, res) => {
   const collectedData = {
@@ -27,38 +25,19 @@ const resolvePayloadToAction = async (payload, res) => {
     data: null,
   };
   switch (payload.type) {
-    case "createPlaylist":
-      {
-        const { seedId, playlistName } = payload;
-        const engine = new SongEngine(false, seedId, token, {});
-        const trackIds = await engine.algorithm(null);
-        const createPlaylistResponse = await apiPutNewPlaylist(
-          `https://api.spotify.com/v1/users/${userId}/playlists`,
-          token,
-          playlistName
-        );
-        await apiPostTracks(
-          `https://api.spotify.com/v1/playlists/${createPlaylistResponse.data.id}/tracks`,
-          token,
-          trackIds.slice(0, 100).map((elem) => elem.uri),
-          0
-        );
-        collectedData.message = "Successfully created a new playlist";
-        return collectedData;
-      }
     case "getSuggestions":
       {
-        const { seeds, targetIndex } = payload;
+        const { seeds, targetIndex, radioName } = payload;
         let optionalTarget = null
-        if (!!targetIndex) {
+        if (targetIndex != null) {
           optionalTarget = seeds[targetIndex]
         }
         const controller = new PlayerController(token)
         let trackIds = []
         if (!!seeds && !!seeds.length && seeds.length > 0) {
-          trackIds = await controller.poll(40, seeds, optionalTarget)
+          trackIds = await controller.poll(40, radioName, seeds, optionalTarget)
         } else {
-          trackIds = await controller.poll(40)
+          trackIds = await controller.poll(40, radioName)
         }
         if (trackIds.length > 0) {
           collectedData.message = "Suggested tracks: " + trackIds.join("\n");
@@ -107,12 +86,23 @@ router.get(`${BASE_URL}/auth/callback`, async function (req, res, next) {
   try {
     const authPayload = await authorizeStepTwo(redirect_uri, req.query.code);
     token = authPayload.token;
-    const { data } = await getSpotifyUser(token);
-    userId = data.id;
-    res.send({ userId: userId });
+    await getSpotifyUser(token);
+    res.redirect(redirect_checklogin);
   } catch (e) {
     console.log(e);
     res.send({ error: "Spotify auth: could not get user access token" });
+  }
+});
+
+/* GET Login status */
+router.get(`${BASE_URL}/auth/loggedin`, async function (req, res, next) {
+  const controller = new PlayerController(token)
+  const trackId = await controller.pollSeed()
+  if (!!trackId) {
+    res.sendStatus(200)
+  } else {
+    // Token expired
+    res.send("error: token expired, please log in again")
   }
 });
 
