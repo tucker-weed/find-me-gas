@@ -22,7 +22,7 @@ const resolvePayloadToData = async payload => {
   switch (payload.type) {
     case "getSuggestions":
       {
-        const { seeds, targetIndex, radioName } = payload;
+        const { seeds, targetIndex, radioName, blacklist } = payload;
         let optionalTarget = null
         if (targetIndex != null) {
           optionalTarget = seeds[targetIndex]
@@ -30,14 +30,14 @@ const resolvePayloadToData = async payload => {
         const controller = new PlayerController(token)
         let trackIds = []
         if (!!seeds && !!seeds.length && seeds.length > 0) {
-          trackIds = await controller.poll(40, radioName, seeds, optionalTarget)
+          trackIds = await controller.poll(40, blacklist, radioName, seeds, optionalTarget)
         } else {
-          trackIds = await controller.poll(40, radioName)
+          trackIds = await controller.poll(40, blacklist, radioName)
         }
         if (trackIds.length > 0) {
           collectedData.message = "Suggested tracks: " + trackIds.join("\n");
         } else {
-          collectedData.message = "Error: couldn't get currently playing song"
+          collectedData.message = "error: couldn't get currently playing song"
         }
         return collectedData;
       }

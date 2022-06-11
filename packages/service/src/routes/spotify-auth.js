@@ -4,7 +4,7 @@ import {
     authorizeStepOne,
     authorizeStepTwo,
     getSpotifyUser,
-  } from "../utils/spotify-api.js";
+  } from "../utils/spotify-api-interaction.js";
 const router = express.Router();
 
 let redirect_uri = "https://find-me-gas.herokuapp.com/spotify/auth/callback";

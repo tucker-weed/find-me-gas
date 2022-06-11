@@ -11,21 +11,33 @@ export const SpotifyController = ({ postAuth }) => {
   const [state, setState] = useState({
     loading: false,
     message: "",
+    blacklistString: "",
     seeds: [],
     targetIndex: null,
   });
   const [playlistName, setPlaylistName] = useState(null);
+  const [tempBlacklist, setTempBlacklist] = useState("");
+
+  const addTempBlacklist = () => {
+    let baseString = state.blacklistString;
+    if (!(!!baseString)) {
+      baseString = "";
+    }
+    setState({ ...state, blacklistString: baseString + tempBlacklist + "," }); 
+  }
 
   // vvvv API bridge functions vvvv
 
   const getSuggestions = () => {
+    const blacklist = state.blacklistString.split(",");
     setState({ ...state, loading: true });
     fetch(`${baseaddr}/spotify/api`, {
       method: "POST",
       body: JSON.stringify({ type: "getSuggestions",
       seeds: state.seeds,
       targetIndex: state.targetIndex,
-      radioName: playlistName 
+      radioName: playlistName,
+      blacklist: blacklist
     }),
     })
       .then((response) => response.json())
@@ -38,6 +50,51 @@ export const SpotifyController = ({ postAuth }) => {
     setState({ ...state, loading: true });
     window.location.href = `${baseaddr}/spotify/auth/loggedin`;
     setState({ ...state, loading: false }); 
+  };
+
+  const checkBlacklist = () => {
+    if (!(!!state.blacklistString)) {
+      return;
+    } 
+    const newBlString = state.blacklistString.split(",").join("\n")
+    setState({ ...state, message: newBlString });
+  };
+
+  const checkCurrPlaying = () => {
+    setState({ ...state, loading: true });
+    fetch(`${baseaddr}/spotify/api`, {
+      method: "POST",
+      body: JSON.stringify({ type: "getPlaying" }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (!!data.data) {
+          setState({ ...state, loading: false, message: "spotify:track:" + data.data });
+        } else {
+          setState({ ...state, loading: false, message: "error: song unavailable" });
+        }
+      });
+  };
+
+  const addToBlacklist = () => {
+    setState({ ...state, loading: true });
+    fetch(`${baseaddr}/spotify/api`, {
+      method: "POST",
+      body: JSON.stringify({ type: "getPlaying" }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (!!data.data) {
+          const uri = "spotify:track:" + data.data;
+          let baseString = state.blacklistString;
+          if (!(!!baseString)) {
+            baseString = "";
+          }
+          setState({ ...state, loading: false, message: uri, blacklistString: baseString + uri + "," });
+        } else {
+          setState({ ...state, loading: false, message: "error: song unavailable" });
+        }
+      });
   };
 
   const addCurrPlayingSeed = () => {
@@ -127,10 +184,30 @@ export const SpotifyController = ({ postAuth }) => {
         </div>
         <br />
         <div style={{backgroundColor: "#E9DAC4"}}>
+          <label>Blacklist: </label>
+          <input
+            type="text"
+            name="blacklistString"
+            onChange={(evt) => setTempBlacklist(evt.target.value)}
+          />
+          <br />
+          <button onClick={addTempBlacklist}>Add input to blacklist</button>
+        </div>
+        <br />
+        <div style={{backgroundColor: "#E9DAC4"}}>
           <button onClick={getSuggestions}>Get Current Song Radio</button>
           <br />
           <br />
           <button onClick={addCurrPlayingSeed}>Add seed to bin</button>
+          <br />
+          <br />
+          <button onClick={checkCurrPlaying}>Check currently playing song ID</button>
+          <br />
+          <br />
+          <button onClick={checkBlacklist}>Check blacklist</button>
+          <br />
+          <br />
+          <button onClick={addToBlacklist}>Add currently playing to blacklist</button>
         </div>
         <br />
         <div style={{backgroundColor: "#E9DAC4"}}>

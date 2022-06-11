@@ -3,26 +3,13 @@ import axios from "axios";
 /**
  * SongEngine class contains methods which filter or produce songs on spotify
  *
- * @param state - saved component state which contains user input values
- * @param playlistId - target playlist id to fill with songs
  * @param token - user authenticated access token for API requests
- * @param seenSongs - an Array of track IDs seen already
  */
 export default class SongEngine {
-  _playlistId;
   _token;
-  _lookForRelated;
-  _seenSongs;
-  _tracks;
-  _returnQueue;
-  _maxRuns = 6;
 
-  constructor(lookForRelated, playlistId, token, seenSongs) {
-    this._playlistId = playlistId;
+  constructor(token) {
     this._token = token;
-    this._lookForRelated = lookForRelated;
-    this._seenSongs = seenSongs;
-    this._tracks = {};
   }
 
   /**
@@ -237,7 +224,7 @@ export default class SongEngine {
    * @param artistIds - an Array of artist ID strings
    * @returns - json data with trackIds and response fields
    */
-  _getSeededRecs = async (playData, artistIds) => {
+  _getSeededRecs = async (playData, artistIds, blacklist) => {
     let idString
     if (!!playData.flag) {
       idString = artistIds;
@@ -249,8 +236,7 @@ export default class SongEngine {
       const response = await this._apiGet(url);
       const tracks = response.data.tracks;
       const trackIds = tracks.map((elem) => elem.id);
-
-      return { trackIds: trackIds, response: response };
+      return { trackIds: trackIds.filter((x) => !blacklist.includes(x)), response: response };
     } else {
       idString = artistIds.join(",");
       const allTrackIds = []
@@ -265,8 +251,7 @@ export default class SongEngine {
         const trackIds = tracks.map((elem) => elem.id); 
         allTrackIds.push(...trackIds)
       }
-
-      return { trackIds: trackIds, response: response };
+      return { trackIds: trackIds.filter((x) => !blacklist.includes(x)), response: response };
     }
   };
 
@@ -274,7 +259,7 @@ export default class SongEngine {
     return Math.floor(Math.random() * max);
   };
 
-  quickSuggestions = async (numSuggestions, seedTrackList, optionalTarget) => {
+  quickSuggestions = async (numSuggestions, seedTrackList, blacklist, optionalTarget) => {
     const howMany = seedTrackList.length
     const partition = numSuggestions / howMany
     const newTrackIds = []
@@ -284,7 +269,7 @@ export default class SongEngine {
     let KILL = false
     for (let i = 0; i < howMany && !KILL; i++) {
       for (let k = 0; k < howMany && !KILL; k++) {
-        const data = await this._getSeededRecs({flag: 1}, [seedTrackList[i]])
+        const data = await this._getSeededRecs({flag: 1}, [seedTrackList[i]], blacklist)
         const uniques = []
         for (let j = 0; j < data.trackIds.length; j++) {
           if (!freqMap[data.trackIds[j].id]) {

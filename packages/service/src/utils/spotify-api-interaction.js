@@ -190,19 +190,26 @@ export const apiPutNewPlaylist = async (url, token, name) => {
     name,
     public: true,
   };
-  return await axios({
-    url,
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "Access-Control-Allow-Origin": "*",
-    },
-    data: JSON.stringify(jsonData),
-  })
-    .then((response) => response)
-    .catch((e) => e);
+  let retData = false;
+  while (!retData) {
+    try {
+      retData = await axios({
+        url,
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+        data: JSON.stringify(jsonData),
+      })
+        .then((response) => response)
+      return retData;
+    } catch (e) {
+      retData = false
+    }
+  }
 };
 
 export const apiPutNav = async (url, token, id) => {
@@ -259,18 +266,25 @@ export const apiPostTracks = async (url, token, trackIds, position) => {
       position: position,
     };
   }
-  return await axios({
-    url,
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-    },
-    data: JSON.stringify(jsonData),
-  })
-    .then((response) => response)
-    .catch((e) => e);
+  let retData = false;
+  while (!retData) {
+    try {
+      await axios({
+        url,
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+        data: JSON.stringify(jsonData),
+      })
+        .then((response) => response)
+      retData = true
+    } catch (e) {
+      retData = false
+    }
+  }
 };
 
 export const apiPost = async (url, token) => {

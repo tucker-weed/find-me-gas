@@ -4,14 +4,14 @@ import {
     apiPut,
     apiPostTracks,
     apiPutNewPlaylist,
-  } from "./spotify-api.js";
+  } from "./spotify-api-interaction.js";
 
 import SongEngine from "./song-engine.js";
   
 export default class PlayerController {
     constructor(token) {
         this._token = token;
-        this._engine = new SongEngine(false, "", token, {});
+        this._engine = new SongEngine(token);
         this._sessionID = Date.now()
     }
 
@@ -28,7 +28,7 @@ export default class PlayerController {
         return img.trackPlaying
     }
 
-    poll = async (numSuggestions, radioName, seeds, optionalTarget) => {
+    poll = async (numSuggestions, blacklist, radioName, seeds, optionalTarget) => {
         if (!(!!seeds)) {
             const seed = await this.pollSeed()
             seeds = [seed]
@@ -37,7 +37,7 @@ export default class PlayerController {
         if (radioName != null) {
             newPlayName = radioName
         }
-        const trackIds = (await this._engine.quickSuggestions(numSuggestions, seeds, optionalTarget)).map((elem) => elem.id)
+        const trackIds = (await this._engine.quickSuggestions(numSuggestions, seeds, blacklist, optionalTarget)).map((elem) => elem.id)
         const createPlaylistResponse = await apiPutNewPlaylist(
             `https://api.spotify.com/v1/users/12168726728/playlists`,
             this._token,
