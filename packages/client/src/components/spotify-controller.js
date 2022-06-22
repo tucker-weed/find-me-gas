@@ -115,7 +115,7 @@ export const SpotifyController = ({ postAuth }) => {
           if (!!oldState.seeds.find(e => e === data.data)) {
             setState({ ...oldState, message: "Error: can't add same seed twice" });
             return
-          } else if (oldState.seeds.length === 5) {
+          } else if (oldState.seeds.length === 3) {
             setState({ ...oldState, message: "Error: max number of seeds reached" });
             return 
           }
