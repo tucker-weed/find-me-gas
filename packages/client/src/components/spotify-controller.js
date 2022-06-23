@@ -37,7 +37,10 @@ export const SpotifyController = ({ postAuth }) => {
       seeds: state.seeds,
       targetIndex: state.targetIndex,
       radioName: playlistName,
-      blacklist: blacklist
+      blacklist: blacklist,
+      headers: {
+        accept: 'application/json',
+      },
     }),
     })
       .then((response) => response.json())
@@ -169,7 +172,7 @@ export const SpotifyController = ({ postAuth }) => {
         <h2>Spotify Authorization</h2>
         <button onClick={authorize}>Login</button>
         <br />
-        <button onClick={checkLogin}>Check still authorized</button>
+        <button onClick={(e) => {e.preventDefault(); checkLogin()}}>Check still authorized</button>
       </div>
       <br />
       <div style={{backgroundColor: "#E9DAC4"}}>
@@ -195,19 +198,19 @@ export const SpotifyController = ({ postAuth }) => {
         </div>
         <br />
         <div style={{backgroundColor: "#E9DAC4"}}>
-          <button onClick={getSuggestions}>Get Current Song Radio</button>
+          <button onClick={(e) => {e.preventDefault(); getSuggestions()}}>Get Current Song Radio</button>
           <br />
           <br />
-          <button onClick={addCurrPlayingSeed}>Add seed to bin</button>
+          <button onClick={(e) => {e.preventDefault(); addCurrPlayingSeed()}}>Add seed to bin</button>
           <br />
           <br />
-          <button onClick={checkCurrPlaying}>Check currently playing song ID</button>
+          <button onClick={(e) => {e.preventDefault(); checkCurrPlaying()}}>Check currently playing song ID</button>
           <br />
           <br />
-          <button onClick={checkBlacklist}>Check blacklist</button>
+          <button onClick={(e) => {e.preventDefault(); checkBlacklist()}}>Check blacklist</button>
           <br />
           <br />
-          <button onClick={addToBlacklist}>Add currently playing to blacklist</button>
+          <button onClick={(e) => {e.preventDefault(); addToBlacklist()}}>Add currently playing to blacklist</button>
         </div>
         <br />
         <div style={{backgroundColor: "#E9DAC4"}}>
