@@ -6,5 +6,8 @@
   "scripts": {
     "client": "cd packages/client && yarn",
     "service": "cd packages/service && yarn"
+  },
+  "resolutions": {
+    "react-error-overlay": "6.0.9"
   }
 }

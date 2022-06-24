@@ -143,28 +143,19 @@ export default class SongEngine {
       for (let k = 0; k < howMany && !KILL && !KILLPART; k++) { 
         const recs1 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
         const recs2 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
-        const recs3 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
-        const recs4 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
         const uniques = []
-        const uniques2 = []
         for (let j = 0; j < recs1.length; j++) {
           if (recs2.indexOf(recs1[j]) === -1) {
             uniques.push(recs1[j])
           }
         }
-        for (let j = 0; j < recs3.length; j++) {
-          if (recs4.indexOf(recs3[j]) === -1 && uniques.indexOf(recs3[j]) === -1) {
-            uniques2.push(recs3[j])
-          }
-        }
-        uniques.push(...uniques2)
         // choose filter target
         let target = seedTrackList[k]
         if (!!optionalTarget) {
           target = optionalTarget
         }
         // get highest scoring tracks by similarity
-        const filteredTrackIds = await this._filterSuggestions(uniques, target, numSuggestions)
+        const filteredTrackIds = await this._filterSuggestions(uniques, target, Math.round(numSuggestions / 2))
         // fill partition section with tracks
         let KILLMINIPART = false;
         for (let j = 0; j < filteredTrackIds.length && !KILL && !KILLPART && !KILLMINIPART; j++) {
