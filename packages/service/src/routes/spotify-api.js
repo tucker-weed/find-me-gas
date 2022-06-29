@@ -33,9 +33,9 @@ const resolvePayloadToData = async payload => {
         const controller = new PlayerController(token)
         let trackIds = []
         if (!!seeds && !!seeds.length && seeds.length > 0) {
-          trackIds = await controller.poll(50, blacklist, radioName, seeds, optionalTarget)
+          trackIds = await controller.poll(30, blacklist, radioName, seeds, optionalTarget)
         } else {
-          trackIds = await controller.poll(50, blacklist, radioName)
+          trackIds = await controller.poll(30, blacklist, radioName)
         }
         if (trackIds.length > 0) {
           collectedData.message = "Suggested tracks: " + trackIds.join("\n");
