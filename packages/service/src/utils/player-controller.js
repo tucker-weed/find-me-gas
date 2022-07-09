@@ -4,6 +4,7 @@ import {
     apiPut,
     apiPostTracks,
     apiPutNewPlaylist,
+    apiPutNav,
   } from "./spotify-api-interaction.js";
 
 import SongEngine from "./song-engine.js";
@@ -38,17 +39,22 @@ export default class PlayerController {
             newPlayName = radioName
         }
         const trackIds = (await this._engine.quickSuggestions(numSuggestions, seeds, uniqueLevel, blacklist, optionalTarget)).map((elem) => elem.id)
-        const createPlaylistResponse = await apiPutNewPlaylist(
+        const radioId = await apiPutNewPlaylist(
             `https://api.spotify.com/v1/users/12168726728/playlists`,
             this._token,
              newPlayName
         );
         await apiPostTracks(
-            `https://api.spotify.com/v1/playlists/${createPlaylistResponse.data.id}/tracks`,
+            `https://api.spotify.com/v1/playlists/${radioId}/tracks`,
             this._token,
             trackIds,
             0
         );
+        await apiPutNav(
+            `https://api.spotify.com/v1/me/player/play`,
+            this._token,
+            radioId
+        )
         return trackIds
     }
 

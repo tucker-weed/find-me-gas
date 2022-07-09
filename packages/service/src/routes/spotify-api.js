@@ -32,7 +32,7 @@ const resolvePayloadToData = async payload => {
         }
         let level = uniqueLevel
         if (!(!!uniqueLevel)) {
-          level = 100
+          level = 1
         }
         const controller = new PlayerController(token)
         let trackIds = []

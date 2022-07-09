@@ -145,34 +145,40 @@ filterRoundOne = async (seed, uniqueLevel) => {
     }
   }
   seedArray.sort(function (a, b) {
-    return b.uniqueCount - a.uniqueCount;
+    return a.uniqueCount - b.uniqueCount;
   });
-  console.log(uniqueLevel)
-  return seedArray[uniqueLevel].id
+  let beg = 0
+  let end = 5
+  if (uniqueLevel != 1) {
+    beg = 5 * (uniqueLevel - 1)
+    end = 5 * uniqueLevel
+  }
+  const seedSlice = seedArray.slice(beg, end) 
+  return seedSlice.map(x => x.id) 
 }
 
 quickSuggestions = async (numSuggestions, seedTrackList, uniqueLevel, blacklist, optionalTarget) => {
-    const howMany = seedTrackList.length
-    const partitionSize = numSuggestions / howMany
     const newTrackIds = []
     const seen = {}
     let suggestionsAdded = 0
     let KILL = false
     // Uniqueness boost
-    let temp = []
-    for (let i = 0; i < howMany; i++) {
-      temp.push(await this.filterRoundOne(seedTrackList[i], 19 - (uniqueLevel - 1)))
+    const temp = []
+    for (let i = 0; i < seedTrackList.length; i++) {
+      console.log(uniqueLevel)
+      temp.push(...(await this.filterRoundOne(seedTrackList[i], uniqueLevel)))
     }
-    let newSeedTrackList = null
-    newSeedTrackList = seedTrackList
+    const newSeedTrackList = []
+    newSeedTrackList.push(...seedTrackList)
     seedTrackList = temp
-
+    const howMany = seedTrackList.length
+    const partitionSize = numSuggestions / howMany
     // crosscheck, for each seed, against every other seed
     for (let i = 0; i < howMany && !KILL; i++) {
       let KILLPART = false
       let partitionTotalAdded = 0 
-      let recs1 = await this._getRecommendationsFromSeeds([seedTrackList[i], newSeedTrackList[i]], blacklist)
-      let recs2 = await this._getRecommendationsFromSeeds([seedTrackList[i], newSeedTrackList[i]], blacklist)
+      let recs1 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
+      let recs2 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
       let newRecs = []
       for (let j = 0; j < recs1.length; j++) {
         const rand1 = this._getRandomInt(2)
@@ -186,7 +192,8 @@ quickSuggestions = async (numSuggestions, seedTrackList, uniqueLevel, blacklist,
       }
       for (let k = 0; k < howMany && !KILL && !KILLPART; k++) { 
         // choose filter target and gett highest scoring tracks by similarity
-        let target = newSeedTrackList[k]
+        // TODO change breaking 0th index eventually
+        let target = newSeedTrackList[0]
         if (!!optionalTarget) {
           target = optionalTarget
         }
@@ -209,8 +216,8 @@ quickSuggestions = async (numSuggestions, seedTrackList, uniqueLevel, blacklist,
         }
         if (k == (howMany - 1) && partitionTotalAdded < partitionSize) {
           k = -1
-          recs1 = await this._getRecommendationsFromSeeds([seedTrackList[i], newSeedTrackList[i]], blacklist)
-          recs2 = await this._getRecommendationsFromSeeds([seedTrackList[i], newSeedTrackList[i]], blacklist)
+          recs1 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
+          recs2 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
           newRecs = []
           for (let j = 0; j < recs1.length; j++) {
             const rand1 = this._getRandomInt(2)

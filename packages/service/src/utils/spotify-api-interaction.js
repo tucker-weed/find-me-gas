@@ -205,11 +205,12 @@ export const apiPutNewPlaylist = async (url, token, name) => {
         data: JSON.stringify(jsonData),
       })
         .then((response) => response)
-      return retData;
+      return retData.data.id;
     } catch (e) {
       retData = false
     }
   }
+  return retData
 };
 
 export const apiPutNav = async (url, token, id) => {
@@ -219,7 +220,7 @@ export const apiPutNav = async (url, token, id) => {
   return await axios
     .put(
       url,
-      {},
+      jsonData,
       {
         headers: {
           Authorization: `Bearer ${token}`,
