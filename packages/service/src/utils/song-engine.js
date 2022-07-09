@@ -111,20 +111,19 @@ export default class SongEngine {
    * @returns - json data with trackIds and response fields
    */
   _getRecommendationsFromSeeds = async (seeds, blacklist) => {
-    const allTrackIds = []
     const trackIds = []
-
+    let seedString = ""
     for (let i = 0; i < seeds.length; i++) {
-      const url =
+      seedString += seeds[i] + (i == seeds.length - 1 ? "" :",")
+    }
+    const url =
       "https://api.spotify.com/v1/recommendations?limit=100" +
       "&seed_tracks=" +
-      seeds[i] +
+      seedString +
       "&market=from_token";
-      const response = await this._apiGet(url);
-      const tracks = response.data.tracks;
-      trackIds.push(...tracks.map((elem) => elem.id)); 
-      allTrackIds.push(...trackIds)
-    }
+    const response = await this._apiGet(url);
+    const tracks = response.data.tracks;
+    trackIds.push(...tracks.map((elem) => elem.id)); 
     return trackIds.filter((x) => !blacklist.includes(x));
   };
 
@@ -172,8 +171,8 @@ quickSuggestions = async (numSuggestions, seedTrackList, uniqueLevel, blacklist,
     for (let i = 0; i < howMany && !KILL; i++) {
       let KILLPART = false
       let partitionTotalAdded = 0 
-      let recs1 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
-      let recs2 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
+      let recs1 = await this._getRecommendationsFromSeeds([seedTrackList[i], newSeedTrackList[i]], blacklist)
+      let recs2 = await this._getRecommendationsFromSeeds([seedTrackList[i], newSeedTrackList[i]], blacklist)
       let newRecs = []
       for (let j = 0; j < recs1.length; j++) {
         const rand1 = this._getRandomInt(2)
@@ -210,8 +209,8 @@ quickSuggestions = async (numSuggestions, seedTrackList, uniqueLevel, blacklist,
         }
         if (k == (howMany - 1) && partitionTotalAdded < partitionSize) {
           k = -1
-          recs1 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
-          recs2 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
+          recs1 = await this._getRecommendationsFromSeeds([seedTrackList[i], newSeedTrackList[i]], blacklist)
+          recs2 = await this._getRecommendationsFromSeeds([seedTrackList[i], newSeedTrackList[i]], blacklist)
           newRecs = []
           for (let j = 0; j < recs1.length; j++) {
             const rand1 = this._getRandomInt(2)
