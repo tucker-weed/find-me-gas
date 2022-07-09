@@ -128,13 +128,46 @@ export default class SongEngine {
     return trackIds.filter((x) => !blacklist.includes(x));
   };
 
-  quickSuggestions = async (numSuggestions, seedTrackList, blacklist, optionalTarget) => {
+filterRoundOne = async (seed, uniqueLevel) => {
+  const refPoint = await this._getRecommendationsFromSeeds([seed], [])
+  const seedMap = {}
+  const seedArray = []
+  const filteredTrackIds = await this._filterSuggestions(refPoint, seed, 20)
+  for (let i = 0; i < filteredTrackIds.length; i++) { 
+    const newId = filteredTrackIds[i].id.split(":")[2]
+    const toCompareAgainst = await this._getRecommendationsFromSeeds([newId], [])
+    const newItem = { id: newId, uniqueCount: 0 }
+    seedMap[newId] = newItem
+    seedArray.push(newItem)
+    for (let j = 0; j < toCompareAgainst.length; j++) { 
+      if (!refPoint.includes(toCompareAgainst[j])) {
+        seedMap[newId].uniqueCount += 1
+      }
+    }
+  }
+  seedArray.sort(function (a, b) {
+    return b.uniqueCount - a.uniqueCount;
+  });
+  console.log(uniqueLevel)
+  return seedArray[uniqueLevel].id
+}
+
+quickSuggestions = async (numSuggestions, seedTrackList, uniqueLevel, blacklist, optionalTarget) => {
     const howMany = seedTrackList.length
     const partitionSize = numSuggestions / howMany
     const newTrackIds = []
     const seen = {}
     let suggestionsAdded = 0
     let KILL = false
+    // Uniqueness boost
+    let temp = []
+    for (let i = 0; i < howMany; i++) {
+      temp.push(await this.filterRoundOne(seedTrackList[i], 19 - (uniqueLevel - 1)))
+    }
+    let newSeedTrackList = null
+    newSeedTrackList = seedTrackList
+    seedTrackList = temp
+
     // crosscheck, for each seed, against every other seed
     for (let i = 0; i < howMany && !KILL; i++) {
       let KILLPART = false
@@ -154,7 +187,7 @@ export default class SongEngine {
       }
       for (let k = 0; k < howMany && !KILL && !KILLPART; k++) { 
         // choose filter target and gett highest scoring tracks by similarity
-        let target = seedTrackList[k]
+        let target = newSeedTrackList[k]
         if (!!optionalTarget) {
           target = optionalTarget
         }

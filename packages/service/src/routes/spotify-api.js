@@ -2,7 +2,7 @@ import express from "express";
 import PlayerController from "../utils/player-controller.js";
 import SimpleDataCache from "../utils/simple-data-cache.js";
 import _auth_router from "./spotify-auth.js";
-
+ 
 const router = express.Router();
 const _AUTH_BASE_URL = "/auth"
 
@@ -25,17 +25,21 @@ const resolvePayloadToData = async payload => {
   switch (payload.type) {
     case "getSuggestions":
       {
-        const { seeds, targetIndex, radioName, blacklist } = payload;
+        const { seeds, targetIndex, radioName, blacklist, uniqueLevel } = payload;
         let optionalTarget = null
         if (targetIndex != null) {
           optionalTarget = seeds[targetIndex]
         }
+        let level = uniqueLevel
+        if (!(!!uniqueLevel)) {
+          level = 100
+        }
         const controller = new PlayerController(token)
         let trackIds = []
         if (!!seeds && !!seeds.length && seeds.length > 0) {
-          trackIds = await controller.poll(30, blacklist, radioName, seeds, optionalTarget)
+          trackIds = await controller.poll(level, 30, blacklist, radioName, seeds, optionalTarget)
         } else {
-          trackIds = await controller.poll(30, blacklist, radioName)
+          trackIds = await controller.poll(level, 30, blacklist, radioName)
         }
         if (trackIds.length > 0) {
           collectedData.message = "Suggested tracks: " + trackIds.join("\n");
