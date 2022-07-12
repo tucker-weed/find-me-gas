@@ -256,17 +256,10 @@ export const apiPut = async (url, token) => {
 /* POST functions */
 
 export const apiPostTracks = async (url, token, trackIds, position) => {
-  let jsonData;
-  if (position === -2) {
-    jsonData = {
-      uris: trackIds,
-    };
-  } else {
-    jsonData = {
-      uris: trackIds,
-      position: position,
-    };
-  }
+  const jsonData = {
+    uris: trackIds,
+    position: position,
+  };
   let retData = false;
   while (!retData) {
     try {

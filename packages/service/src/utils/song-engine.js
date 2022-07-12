@@ -38,17 +38,13 @@ export default class SongEngine {
     }
   };
 
-  _getRandomInt = max => {
-    return Math.floor(Math.random() * max);
-  };
-
   /**
    * Takes a string of track IDs and filters the tracks based on state values
    *
    * @param trackIds - an Array of track ID strings
    * @returns - an array of Track Information json
    */
-    _filterSuggestions = async (trackIds, target, numSuggestions) => {
+    _filterSuggestions = async (trackIds, target, seen, numSuggestions) => {
     const newSuggestions = []
     const targetData = {
       danceability: 0.0,
@@ -101,7 +97,15 @@ export default class SongEngine {
     newSuggestions.sort(function (a, b) {
       return a.val - b.val;
     });
-    return newSuggestions.slice(0, numSuggestions)
+    const returnBin = []
+    let j = 0
+    while (returnBin.length < numSuggestions && j < newSuggestions.length) {
+      if (!(!!seen[newSuggestions[j].id])) {
+        returnBin.push(newSuggestions[j])
+      }
+      j += 1
+    }
+    return returnBin
   };
 
   /**
@@ -110,7 +114,7 @@ export default class SongEngine {
    * @param seeds - an Array of track ID strings
    * @returns - json data with trackIds and response fields
    */
-  _getRecommendationsFromSeeds = async (seeds, blacklist) => {
+  _getRecommendationsFromSeeds = async (seeds) => {
     const trackIds = []
     let seedString = ""
     for (let i = 0; i < seeds.length; i++) {
@@ -124,20 +128,21 @@ export default class SongEngine {
     const response = await this._apiGet(url);
     const tracks = response.data.tracks;
     trackIds.push(...tracks.map((elem) => elem.id)); 
-    return trackIds.filter((x) => !blacklist.includes(x));
+    return trackIds
   };
 
 filterRoundOne = async (seed, uniqueLevel) => {
   const refPoint = await this._getRecommendationsFromSeeds([seed], [])
   const seedMap = {}
   const seedArray = []
-  const filteredTrackIds = await this._filterSuggestions(refPoint, seed, 20)
+  const filteredTrackIds = await this._filterSuggestions(refPoint, seed, {}, 40)
   for (let i = 0; i < filteredTrackIds.length; i++) { 
     const newId = filteredTrackIds[i].id.split(":")[2]
-    const toCompareAgainst = await this._getRecommendationsFromSeeds([newId], [])
+    const toCompareAgainst = await this._getRecommendationsFromSeeds([newId])
     const newItem = { id: newId, uniqueCount: 0 }
     seedMap[newId] = newItem
     seedArray.push(newItem)
+    // TODO can use set logic to make below faster
     for (let j = 0; j < toCompareAgainst.length; j++) { 
       if (!refPoint.includes(toCompareAgainst[j])) {
         seedMap[newId].uniqueCount += 1
@@ -147,17 +152,20 @@ filterRoundOne = async (seed, uniqueLevel) => {
   seedArray.sort(function (a, b) {
     return a.uniqueCount - b.uniqueCount;
   });
+  // below selects 10 seeds from the list of filtered suggestitons
+  // total selected depends on NUM_SUGGESTIONS in quickSuggestions
   let beg = 0
-  let end = 5
+  let end = 10
   if (uniqueLevel != 1) {
-    beg = 5 * (uniqueLevel - 1)
-    end = 5 * uniqueLevel
+    beg = 10 * (uniqueLevel - 1)
+    end = 10 * uniqueLevel
   }
   const seedSlice = seedArray.slice(beg, end) 
   return seedSlice.map(x => x.id) 
 }
 
-quickSuggestions = async (numSuggestions, seedTrackList, uniqueLevel, blacklist, optionalTarget) => {
+quickSuggestions = async (seedTrackList, uniqueLevel, optionalTarget) => {
+    const NUM_SUGGESTIONS = 50
     const newTrackIds = []
     const seen = {}
     let suggestionsAdded = 0
@@ -165,76 +173,34 @@ quickSuggestions = async (numSuggestions, seedTrackList, uniqueLevel, blacklist,
     // Uniqueness boost
     const temp = []
     for (let i = 0; i < seedTrackList.length; i++) {
-      console.log(uniqueLevel)
       temp.push(...(await this.filterRoundOne(seedTrackList[i], uniqueLevel)))
     }
     const newSeedTrackList = []
     newSeedTrackList.push(...seedTrackList)
     seedTrackList = temp
     const howMany = seedTrackList.length
-    const partitionSize = numSuggestions / howMany
     // crosscheck, for each seed, against every other seed
     for (let i = 0; i < howMany && !KILL; i++) {
-      let KILLPART = false
-      let partitionTotalAdded = 0 
-      let recs1 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
-      let recs2 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
-      let newRecs = []
-      for (let j = 0; j < recs1.length; j++) {
-        const rand1 = this._getRandomInt(2)
-        if (rand1 !== 1 && !(!!seen[recs1[j]])) {
-          newRecs.push(recs1[j])
-        }
-        const rand2 = this._getRandomInt(2)
-        if (rand2 !== 1 && !(!!seen[recs2[j]])) {
-          newRecs.push(recs2[j])
-        }
+      let newRecs = await this._getRecommendationsFromSeeds([seedTrackList[i]])
+      // choose filter target and get highest scoring tracks by similarity
+      // TODO change breaking 0th index eventually
+      let target = newSeedTrackList[0]
+      if (!!optionalTarget) {
+        target = optionalTarget
       }
-      for (let k = 0; k < howMany && !KILL && !KILLPART; k++) { 
-        // choose filter target and gett highest scoring tracks by similarity
-        // TODO change breaking 0th index eventually
-        let target = newSeedTrackList[0]
-        if (!!optionalTarget) {
-          target = optionalTarget
+      console.log(suggestionsAdded)
+      const filteredTrackIds = await this._filterSuggestions(newRecs, target, seen, 5)
+      // fill partition section with tracks
+      for (let j = 0; j < filteredTrackIds.length && !KILL; j++) {
+        if (suggestionsAdded < NUM_SUGGESTIONS) {
+          seen[filteredTrackIds[j].id] = true
+          newTrackIds.push(filteredTrackIds[j])
+          suggestionsAdded++
+        } else if (suggestionsAdded === NUM_SUGGESTIONS) {
+          KILL = true
         }
-        const filteredTrackIds = await this._filterSuggestions(newRecs, target, 20)
-        // fill partition section with tracks
-        let KILLMINIPART = false;
-        for (let j = 0; j < filteredTrackIds.length && !KILL && !KILLPART && !KILLMINIPART; j++) {
-          if (suggestionsAdded < numSuggestions && !(!!seen[filteredTrackIds[j].id])) {
-            seen[filteredTrackIds[j].id] = true
-            newTrackIds.push(filteredTrackIds[j])
-            suggestionsAdded++
-            partitionTotalAdded++
-          } else if (suggestionsAdded === numSuggestions) {
-            KILL = true
-          } else if (partitionTotalAdded >= partitionSize) {
-            KILLPART = true
-          } else if (partitionTotalAdded / (i + 1) >= partitionSize / howMany) {
-            KILLMINIPART = true
-          }
-        }
-        if (k == (howMany - 1) && partitionTotalAdded < partitionSize) {
-          k = -1
-          recs1 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
-          recs2 = await this._getRecommendationsFromSeeds([seedTrackList[i]], blacklist)
-          newRecs = []
-          for (let j = 0; j < recs1.length; j++) {
-            const rand1 = this._getRandomInt(2)
-            if (rand1 !== 1 && !(!!seen[recs1[j]])) {
-              newRecs.push(recs1[j])
-            }
-            const rand2 = this._getRandomInt(2)
-            if (rand2 !== 1 && !(!!seen[recs2[j]])) {
-              newRecs.push(recs2[j])
-            }
-          }
-        }
-      }
-      if (i == (howMany - 1) && suggestionsAdded < numSuggestions) {
-        i = 0
       }
     }
-    return newTrackIds.slice(0, numSuggestions)
+    return newTrackIds
   }
 }

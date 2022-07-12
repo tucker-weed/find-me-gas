@@ -19,7 +19,7 @@ export default class PlayerController {
     pollSeed = async () => {
         let img = { trackPlaying: null };
         let breaker = 0;
-        while (!(!!img.trackPlaying) && breaker < 20) {
+        while (!(!!img.trackPlaying) && breaker < 10) {
             breaker++;
             img = await apiGetPlayingData(this._token);
         }
@@ -29,7 +29,7 @@ export default class PlayerController {
         return img.trackPlaying
     }
 
-    poll = async (uniqueLevel, numSuggestions, blacklist, radioName, seeds, optionalTarget) => {
+    pollSuggestions = async (uniqueLevel, radioName, seeds, optionalTarget) => {
         if (!(!!seeds)) {
             const seed = await this.pollSeed()
             seeds = [seed]
@@ -38,23 +38,26 @@ export default class PlayerController {
         if (radioName != null) {
             newPlayName = radioName
         }
-        const trackIds = (await this._engine.quickSuggestions(numSuggestions, seeds, uniqueLevel, blacklist, optionalTarget)).map((elem) => elem.id)
+        const trackIds = (await this._engine.quickSuggestions(seeds, uniqueLevel, optionalTarget)).map((elem) => elem.id)
         const radioId = await apiPutNewPlaylist(
             `https://api.spotify.com/v1/users/12168726728/playlists`,
             this._token,
              newPlayName
         );
+        // post tracks to the new playlist then auto-play it
         await apiPostTracks(
             `https://api.spotify.com/v1/playlists/${radioId}/tracks`,
             this._token,
             trackIds,
             0
         );
-        await apiPutNav(
-            `https://api.spotify.com/v1/me/player/play`,
-            this._token,
-            radioId
-        )
+        for (let i = 0; i < 3; i++) {
+            await apiPutNav(
+                `https://api.spotify.com/v1/me/player/play`,
+                this._token,
+                radioId
+            )
+        }
         return trackIds
     }
 

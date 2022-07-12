@@ -25,7 +25,7 @@ const resolvePayloadToData = async payload => {
   switch (payload.type) {
     case "getSuggestions":
       {
-        const { seeds, targetIndex, radioName, blacklist, uniqueLevel } = payload;
+        const { seeds, targetIndex, radioName, uniqueLevel } = payload;
         let optionalTarget = null
         if (targetIndex != null) {
           optionalTarget = seeds[targetIndex]
@@ -37,9 +37,9 @@ const resolvePayloadToData = async payload => {
         const controller = new PlayerController(token)
         let trackIds = []
         if (!!seeds && !!seeds.length && seeds.length > 0) {
-          trackIds = await controller.poll(level, 30, blacklist, radioName, seeds, optionalTarget)
+          trackIds = await controller.pollSuggestions(level, radioName, seeds, optionalTarget)
         } else {
-          trackIds = await controller.poll(level, 30, blacklist, radioName)
+          trackIds = await controller.pollSuggestions(level, radioName)
         }
         if (trackIds.length > 0) {
           collectedData.message = "Suggested tracks: " + trackIds.join("\n");
