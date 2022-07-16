@@ -15,6 +15,7 @@ const resolvePayloadToData = async payload => {
       // Token expired
       throw new Error("not logged in"); 
   }
+  // console.log(token)
   if (!(!!payload) || (!!payload && !(!!payload.type))) {
     throw new Error("no valid payload to API options"); 
   }
