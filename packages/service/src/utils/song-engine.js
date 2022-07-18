@@ -4,7 +4,7 @@ import {
 } from "./spotify-api-interaction.js";
 
 const DEBUG = false;
-let dlUrl = "https://find-me-gas-deep-learning.ue.r.appspot.com";
+let dlUrl = "https://dl-api.onrender.com";
 
 if (DEBUG) {
   dlUrl = "http://127.0.0.1:5000/";
