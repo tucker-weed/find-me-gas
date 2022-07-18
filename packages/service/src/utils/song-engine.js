@@ -181,7 +181,30 @@ export default class SongEngine {
       "&market=from_token";
     const response = await this._apiGet(url);
     const tracks = response.data.tracks;
-    trackIds.push(...tracks.map((elem) => elem.id)); 
+    const likeBools = []
+    let idString = ""
+    for (let i = 0; i < (tracks.length / 2); i++) {
+      idString += tracks[i].id + (i == (tracks.length / 2) - 1 ? "" :",")
+    }
+    const checkLikesUrl =
+      "https://api.spotify.com/v1/me/tracks/contains?ids=" +
+      idString;
+    const response2 = await this._apiGet(checkLikesUrl);
+    likeBools.push(...response2.data)
+    idString = ""
+    for (let i = (tracks.length / 2); i < tracks.length; i++) {
+      idString += tracks[i].id + (i == tracks.length - 1 ? "" :",")
+    }
+    const checkLikesUrl2 =
+      "https://api.spotify.com/v1/me/tracks/contains?ids=" +
+      idString;
+    const response3 = await this._apiGet(checkLikesUrl2);
+    likeBools.push(...response3.data)
+    for (let i = 0; i < likeBools.length; i++) {
+      if (!likeBools[i]) {
+        trackIds.push(tracks[i].id)
+      }
+    }
     return trackIds
   };
 
@@ -189,7 +212,8 @@ filterRoundOne = async (seed, uniqueLevel) => {
   const refPoint = await this._getRecommendationsFromSeeds([seed], [])
   const seedMap = {}
   const seedArray = []
-  const filteredTrackIds = await this._filterSuggestions(refPoint, seed, {}, 40)
+  let filteredTrackIds = refPoint
+  filteredTrackIds = await this._filterSuggestions(refPoint, seed, {}, 40)
   for (let i = 0; i < filteredTrackIds.length; i++) { 
     const newId = filteredTrackIds[i].id.split(":")[2]
     const toCompareAgainst = await this._getRecommendationsFromSeeds([newId])
@@ -206,7 +230,7 @@ filterRoundOne = async (seed, uniqueLevel) => {
   seedArray.sort(function (a, b) {
     return a.uniqueCount - b.uniqueCount;
   });
-  // below selects 10 seeds from the list of filtered suggestitons
+  // below selects 5 seeds from the list of filtered suggestitons
   // total selected depends on NUM_SUGGESTIONS in quickSuggestions
   let beg = 0
   let end = 10
@@ -254,12 +278,12 @@ quickSuggestions = async (seedTrackList, uniqueLevel, defaultRadio, label, optio
     const seen = {}
     let suggestionsAdded = 0
     let KILL = false
+    const newSeedTrackList = []
     // Uniqueness boost
     const temp = []
     for (let i = 0; i < seedTrackList.length; i++) {
       temp.push(...(await this.filterRoundOne(seedTrackList[i], uniqueLevel)))
     }
-    const newSeedTrackList = []
     newSeedTrackList.push(...seedTrackList)
     seedTrackList = temp
     const howMany = seedTrackList.length
@@ -289,6 +313,9 @@ quickSuggestions = async (seedTrackList, uniqueLevel, defaultRadio, label, optio
         } else if (suggestionsAdded === NUM_SUGGESTIONS) {
           KILL = true
         }
+      }
+      if (suggestionsAdded < NUM_SUGGESTIONS && i == howMany - 1) {
+        i = -1
       }
     }
     return newTrackIds
