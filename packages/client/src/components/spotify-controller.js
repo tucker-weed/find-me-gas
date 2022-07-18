@@ -47,6 +47,7 @@ export const SpotifyController = ({ postAuth }) => {
           setState({ ...state, loading: false, message: data.message });
         }); 
     } else {
+      const targ = Number(playlistName)
       fetch(`${baseaddr}/spotify/api`, {
         method: "POST",
         body: JSON.stringify({ type: "getSuggestions",
@@ -55,7 +56,7 @@ export const SpotifyController = ({ postAuth }) => {
         radioName: playlistName,
         blacklist: [],
         defaultRadio: false,
-        label: 0,
+        label: targ,
         headers: {
           accept: 'application/json',
         },

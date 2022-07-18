@@ -155,7 +155,7 @@ export default class SongEngine {
     let j = 0
     while (j < receivedTrackData.length) {
       if (!(!!seen[receivedTrackData[j].id])) {
-        returnBin.push(receivedTrackData[j])
+        returnBin.push(receivedTrackData[j].id.split(":")[2])
       }
       j += 1
     }
@@ -277,7 +277,8 @@ quickSuggestions = async (seedTrackList, uniqueLevel, defaultRadio, label, optio
       if (defaultRadio) {
         filteredTrackIds = await this._filterSuggestions(newRecs, target, seen, 5)
       } else {
-        filteredTrackIds = await this._filterSuggestionsWithDL(newRecs, label, seen) 
+        filteredTrackIds = await this._filterSuggestionsWithDL(newRecs, label, seen)
+        filteredTrackIds = await this._filterSuggestions(filteredTrackIds, target, seen, 5)
       }
       // fill partition section with tracks
       for (let j = 0; j < filteredTrackIds.length && !KILL; j++) {
