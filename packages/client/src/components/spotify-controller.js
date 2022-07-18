@@ -29,24 +29,43 @@ export const SpotifyController = ({ postAuth }) => {
   // vvvv API bridge functions vvvv
 
   const getSuggestions = () => {
-    const blacklist = state.blacklistString.split(",");
+    const blstr = tempBlacklist
     setState({ ...state, loading: true });
-    fetch(`${baseaddr}/spotify/api`, {
-      method: "POST",
-      body: JSON.stringify({ type: "getSuggestions",
-      seeds: state.seeds,
-      targetIndex: state.targetIndex,
-      radioName: playlistName,
-      blacklist: blacklist,
-      headers: {
-        accept: 'application/json',
-      },
-    }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setState({ ...state, loading: false, message: data.message });
-      });
+    if (blstr !== "") {
+      const lab = Number(blstr)
+      fetch(`${baseaddr}/spotify/api`, {
+        method: "POST",
+        body: JSON.stringify({ type: "labelCurrentSong",
+        label: lab,
+        headers: {
+          accept: 'application/json',
+        },
+      }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          setState({ ...state, loading: false, message: data.message });
+        }); 
+    } else {
+      fetch(`${baseaddr}/spotify/api`, {
+        method: "POST",
+        body: JSON.stringify({ type: "getSuggestions",
+        seeds: state.seeds,
+        targetIndex: state.targetIndex,
+        radioName: playlistName,
+        blacklist: [],
+        defaultRadio: false,
+        label: 0,
+        headers: {
+          accept: 'application/json',
+        },
+      }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          setState({ ...state, loading: false, message: data.message });
+        });
+    }
   };
 
   const checkLogin = () => {

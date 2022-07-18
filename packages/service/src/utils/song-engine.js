@@ -1,4 +1,14 @@
 import axios from "axios";
+import {
+  apiPost,
+} from "./spotify-api-interaction.js";
+
+const DEBUG = false;
+let dlUrl = "https://find-me-gas-deep-learning.ue.r.appspot.com";
+
+if (DEBUG) {
+  dlUrl = "http://127.0.0.1:5000/";
+}
 
 /**
  * SongEngine class contains methods which filter or produce songs on spotify
@@ -108,6 +118,50 @@ export default class SongEngine {
     return returnBin
   };
 
+  _filterSuggestionsWithDL = async (trackIds, label, seen) => {
+    const newSuggestions = []
+    while (trackIds) {
+      const songsUrl =
+        "https://api.spotify.com/v1/audio-features/?ids=" +
+        trackIds.slice(0, 100).join(",");
+      if (trackIds.length <= 100) {
+        trackIds = false;
+      } else {
+        trackIds = trackIds.slice(100, trackIds.length);
+      }
+      const trackData = await this._apiGet(songsUrl);
+      const features = trackData.data.audio_features;
+      for (let j = 0; j < features.length; j++) {
+        if (features[j] != null && !!features[j]["danceability"] && !!features[j]["valence"] && !!features[j]["energy"] && !!features[j]["acousticness"] && !!features[j]["speechiness"]) {
+          newSuggestions.push({
+            id: features[j].uri,
+            feats: [features[j].danceability,
+                  features[j].energy,
+                  features[j].speechiness,
+                  features[j].acousticness,
+                  features[j].valence]
+          })
+        }
+      }
+    }
+    // Make request
+    const body = {
+      type: "getSongsInClass",
+      tracks: newSuggestions,
+      label,
+    }
+    const receivedTrackData = (await apiPost(dlUrl, body)).data.probs;
+    const returnBin = []
+    let j = 0
+    while (j < receivedTrackData.length) {
+      if (!(!!seen[receivedTrackData[j].id])) {
+        returnBin.push(receivedTrackData[j])
+      }
+      j += 1
+    }
+    return returnBin
+  };
+
   /**
    * Takes an array of seed IDs and produces 100 recommendations
    *
@@ -164,7 +218,37 @@ filterRoundOne = async (seed, uniqueLevel) => {
   return seedSlice.map(x => x.id) 
 }
 
-quickSuggestions = async (seedTrackList, uniqueLevel, optionalTarget) => {
+labelSong = async (track, label) => {
+    const featUrl =
+      "https://api.spotify.com/v1/audio-features/" + track;
+    const errorMessage = "error: could not label this track"
+    const targData = (await this._apiGet(featUrl)).data;
+    if (!(!!targData.danceability)) {
+      return errorMessage
+    }
+    if (!(!!targData.valence)) {
+      return errorMessage
+    }
+    if (!(!!targData.energy)) {
+      return errorMessage
+    }
+    if (!(!!targData.acousticness)) {
+      return errorMessage
+    }
+  // Make request
+  const body = {
+    type: "labelData",
+    label,
+    track: [targData.danceability,
+      targData.energy,
+      targData.speechiness,
+      targData.acousticness,
+      targData.valence],
+  }
+  await apiPost(dlUrl, body)
+};
+
+quickSuggestions = async (seedTrackList, uniqueLevel, defaultRadio, label, optionalTarget) => {
     const NUM_SUGGESTIONS = 50
     const newTrackIds = []
     const seen = {}
@@ -189,7 +273,12 @@ quickSuggestions = async (seedTrackList, uniqueLevel, optionalTarget) => {
         target = optionalTarget
       }
       console.log(suggestionsAdded)
-      const filteredTrackIds = await this._filterSuggestions(newRecs, target, seen, 5)
+      let filteredTrackIds = null
+      if (defaultRadio) {
+        filteredTrackIds = await this._filterSuggestions(newRecs, target, seen, 5)
+      } else {
+        filteredTrackIds = await this._filterSuggestionsWithDL(newRecs, label, seen) 
+      }
       // fill partition section with tracks
       for (let j = 0; j < filteredTrackIds.length && !KILL; j++) {
         if (suggestionsAdded < NUM_SUGGESTIONS) {

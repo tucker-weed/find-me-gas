@@ -29,7 +29,13 @@ export default class PlayerController {
         return img.trackPlaying
     }
 
-    pollSuggestions = async (uniqueLevel, radioName, seeds, optionalTarget) => {
+    labelCurrentSong = async (label) => {
+        const curr = await this.pollSeed()
+        await this._engine.labelSong(curr, label)
+        return curr
+    }
+
+    pollSuggestions = async (uniqueLevel, radioName, seeds, defaultRadio, label, optionalTarget) => {
         if (!(!!seeds)) {
             const seed = await this.pollSeed()
             seeds = [seed]
@@ -38,7 +44,7 @@ export default class PlayerController {
         if (radioName != null) {
             newPlayName = radioName
         }
-        const trackIds = (await this._engine.quickSuggestions(seeds, uniqueLevel, optionalTarget)).map((elem) => elem.id)
+        const trackIds = (await this._engine.quickSuggestions(seeds, uniqueLevel, defaultRadio, label, optionalTarget)).map((elem) => elem.id)
         const radioId = await apiPutNewPlaylist(
             `https://api.spotify.com/v1/users/12168726728/playlists`,
             this._token,
@@ -62,6 +68,7 @@ export default class PlayerController {
     }
 
     next = async () => {
+        // POST broken
         await apiPost("https://api.spotify.com/v1/me/player/next", this._token);
         let img;
         for (let i = 0; i < 1; i++) {
@@ -73,6 +80,7 @@ export default class PlayerController {
     };
 
     back = async () => {
+        // POST broken
         await apiPost("https://api.spotify.com/v1/me/player/previous", this._token);
         let img;
         for (let i = 0; i < 1; i++) {

@@ -281,19 +281,15 @@ export const apiPostTracks = async (url, token, trackIds, position) => {
   }
 };
 
-export const apiPost = async (url, token) => {
-  return await await axios
-    .post(
-      url,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json;charset=UTF-8",
-          "Access-Control-Allow-Origin": "*",
-        },
-      }
-    )
+export const apiPost = async (url, body) => {
+  return await axios({
+    url,
+    method: "POST",
+    data: JSON.stringify(body),
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    }})
     .catch((e) => e);
 };
 

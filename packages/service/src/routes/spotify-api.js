@@ -15,7 +15,6 @@ const resolvePayloadToData = async payload => {
       // Token expired
       throw new Error("not logged in"); 
   }
-  // console.log(token)
   if (!(!!payload) || (!!payload && !(!!payload.type))) {
     throw new Error("no valid payload to API options"); 
   }
@@ -26,7 +25,7 @@ const resolvePayloadToData = async payload => {
   switch (payload.type) {
     case "getSuggestions":
       {
-        const { seeds, targetIndex, radioName, uniqueLevel } = payload;
+        const { seeds, targetIndex, radioName, uniqueLevel, defaultRadio, label } = payload;
         let optionalTarget = null
         if (targetIndex != null) {
           optionalTarget = seeds[targetIndex]
@@ -38,9 +37,9 @@ const resolvePayloadToData = async payload => {
         const controller = new PlayerController(token)
         let trackIds = []
         if (!!seeds && !!seeds.length && seeds.length > 0) {
-          trackIds = await controller.pollSuggestions(level, radioName, seeds, optionalTarget)
+          trackIds = await controller.pollSuggestions(level, radioName, seeds, defaultRadio, label, optionalTarget)
         } else {
-          trackIds = await controller.pollSuggestions(level, radioName)
+          trackIds = await controller.pollSuggestions(level, radioName, null, defaultRadio, label)
         }
         if (trackIds.length > 0) {
           collectedData.message = "Suggested tracks: " + trackIds.join("\n");
@@ -61,12 +60,24 @@ const resolvePayloadToData = async payload => {
         }
         return collectedData;
       }
+    case "labelCurrentSong":
+      {
+        const { label } = payload;
+        const controller = new PlayerController(token)
+        const trackId = await controller.labelCurrentSong(label)
+        if (trackId) {
+          collectedData.message = "Currently playing song " + trackId + " labeled as " + String(label)
+          collectedData.data = trackId
+        } else {
+          collectedData.message = "Error: couldn't get currently playing song"
+        }
+        return collectedData;
+      }
     default:
       throw new Error("no valid payload to API options");
   }
 };
 
-/* GET interactions with Spotify API */
 router.post("/api", async function (req, res, next) {
   try {
     const data = await resolvePayloadToData(req.body);
